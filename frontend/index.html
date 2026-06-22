@@ -801,6 +801,289 @@
         }
 
         /* ==========================================================================
+           ORCHESTRATOR HOME SCREEN & ANIMATED AI FACE
+           ========================================================================== */
+        .home-screen-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 600px;
+            margin: auto;
+            gap: 40px;
+            text-align: center;
+            padding: 40px 20px;
+            animation: fadeInPage 0.8s ease-out;
+        }
+
+        .ai-face-wrapper {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ai-face {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(15, 23, 64, 0.95) 0%, rgba(5, 7, 20, 0.98) 100%);
+            border: 2px solid rgba(79, 158, 255, 0.4);
+            border-radius: 50%;
+            box-shadow: 0 0 35px rgba(79, 158, 255, 0.25), inset 0 0 20px rgba(79, 158, 255, 0.15);
+            animation: faceBreathing 4s ease-in-out infinite;
+            z-index: 2;
+        }
+
+        .eye {
+            width: 24px;
+            height: 24px;
+            background-color: #050714;
+            border: 2px solid #4f9eff;
+            border-radius: 50%;
+            position: absolute;
+            top: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: eyeBlink 3s infinite;
+            box-shadow: 0 0 15px rgba(79, 158, 255, 0.6);
+        }
+
+        .eye.left-eye {
+            left: 36px;
+        }
+
+        .eye.right-eye {
+            right: 36px;
+        }
+
+        .pupil {
+            width: 10px;
+            height: 10px;
+            background-color: #00f2fe;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #00f2fe, 0 0 20px #4f9eff;
+        }
+
+        .mouth {
+            position: absolute;
+            bottom: 38px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 32px;
+            height: 4px;
+            background-color: rgba(79, 158, 255, 0.6);
+            border-radius: 2px;
+            box-shadow: 0 0 8px rgba(79, 158, 255, 0.5);
+            animation: mouthBreathing 4s ease-in-out infinite;
+        }
+
+        .pulse-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 2px solid rgba(79, 158, 255, 0.3);
+            border-radius: 50%;
+            animation: ringPulse 3s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .pulse-ring.delay-1 {
+            animation-delay: 1.5s;
+        }
+
+        .typewriter-text {
+            font-family: 'Outfit', sans-serif;
+            font-size: 22px;
+            font-weight: 500;
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 66px;
+            max-width: 500px;
+            border-right: 2px solid var(--accent-neon);
+            animation: cursorBlink 0.75s step-end infinite;
+            word-wrap: break-word;
+            display: inline-block;
+        }
+
+        /* AI Face Keyframe Animations */
+        @keyframes faceBreathing {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 35px rgba(79, 158, 255, 0.25), inset 0 0 20px rgba(79, 158, 255, 0.15);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 50px rgba(79, 158, 255, 0.45), inset 0 0 30px rgba(79, 158, 255, 0.25);
+                border-color: rgba(0, 242, 254, 0.6);
+            }
+        }
+
+        @keyframes eyeBlink {
+            0%, 96%, 100% {
+                transform: scaleY(1);
+            }
+            98% {
+                transform: scaleY(0.1);
+            }
+        }
+
+        @keyframes mouthBreathing {
+            0%, 100% {
+                width: 32px;
+                height: 4px;
+                background-color: rgba(79, 158, 255, 0.6);
+            }
+            50% {
+                width: 40px;
+                height: 5px;
+                background-color: rgba(0, 242, 254, 0.8);
+            }
+        }
+
+        @keyframes ringPulse {
+            0% {
+                transform: scale(0.75);
+                opacity: 1;
+                box-shadow: 0 0 10px rgba(79, 158, 255, 0.4);
+            }
+            100% {
+                transform: scale(1.45);
+                opacity: 0;
+                box-shadow: 0 0 30px rgba(79, 158, 255, 0);
+            }
+        }
+
+        @keyframes cursorBlink {
+            from, to { border-color: transparent }
+            50% { border-color: var(--accent-neon); }
+        }
+
+        /* Suggestion Cards Container */
+        .home-suggestions-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 16px;
+            width: 100%;
+            margin-top: 15px;
+            opacity: 0;
+            animation: fadeInPage 0.8s ease-out 0.8s forwards;
+        }
+
+        /* Suggestion Card */
+        .suggestion-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 14px;
+            width: 165px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(12px);
+        }
+
+        .suggestion-card:hover {
+            background: rgba(79, 158, 255, 0.08);
+            border-color: rgba(79, 158, 255, 0.4);
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px rgba(79, 158, 255, 0.15);
+        }
+
+        .suggestion-card-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(10, 14, 38, 0.6);
+            border: 1px solid rgba(79, 158, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .suggestion-card:hover .suggestion-card-icon {
+            background: rgba(79, 158, 255, 0.15);
+            border-color: var(--accent-neon);
+            box-shadow: 0 0 10px var(--accent-neon-glow);
+        }
+
+        .suggestion-card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .suggestion-card-prompt {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.4;
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Specialist Agent Badges */
+        .agent-badge {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-bottom: 6px;
+            align-self: flex-start;
+            display: inline-flex;
+            border: 1px solid transparent;
+            text-transform: uppercase;
+        }
+
+        .agent-badge-orchestrator {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            border-color: var(--glass-border);
+        }
+
+        .agent-badge-tasks {
+            background: rgba(79, 158, 255, 0.12);
+            color: #4f9eff;
+            border-color: rgba(79, 158, 255, 0.3);
+        }
+
+        .agent-badge-schedule {
+            background: rgba(0, 242, 254, 0.12);
+            color: #00f2fe;
+            border-color: rgba(0, 242, 254, 0.3);
+        }
+
+        .agent-badge-finance {
+            background: rgba(241, 250, 140, 0.12);
+            color: #f1fa8c;
+            border-color: rgba(241, 250, 140, 0.3);
+        }
+
+        .agent-badge-health {
+            background: rgba(255, 85, 85, 0.12);
+            color: #ff5555;
+            border-color: rgba(255, 85, 85, 0.3);
+        }
+
+        .agent-badge-briefing {
+            background: rgba(255, 184, 108, 0.12);
+            color: #ffb86c;
+            border-color: rgba(255, 184, 108, 0.3);
+        }
+
+
+        /* ==========================================================================
            RESPONSIVE VIEWPORTS
            ========================================================================== */
         @media (max-width: 768px) {
@@ -848,7 +1131,7 @@
         <!-- LEFT SIDEBAR (GLASSMORPHISM) -->
         <aside class="sidebar" id="sidebar">
             <!-- Brand Logo with Shiny Animation -->
-            <div class="logo-container">
+            <div class="logo-container" onclick="switchAgent('orchestrator')" style="cursor: pointer;">
                 <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 17C9.24 17 7 14.76 7 12C7 9.24 9.24 7 12 7C14.76 7 17 9.24 17 12C17 14.76 14.76 17 12 17Z" fill="url(#grad1)"/>
                     <path d="M12 5C8.13 5 5 8.13 5 12C5 15.87 8.13 19 12 19C15.87 19 19 15.87 19 12" fill="none" stroke="url(#grad2)" stroke-width="2" stroke-linecap="round"/>
@@ -870,9 +1153,24 @@
             <!-- Agent navigation buttons -->
             <nav style="display: contents;">
                 <ul class="nav-links">
+                    <!-- Home Screen (Orchestrator) -->
+                    <li class="nav-item" style="--btn-index: 0;">
+                        <button class="nav-btn active" id="btn-orchestrator" onclick="switchAgent('orchestrator')">
+                            <div class="avatar-container">
+                                <svg viewBox="0 0 24 24" class="avatar-svg svg-home" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="#4f9eff" />
+                                </svg>
+                            </div>
+                            <div class="nav-btn-info">
+                                <span class="nav-btn-title">Home</span>
+                                <span class="nav-btn-desc">LifeOS Coordinator</span>
+                            </div>
+                        </button>
+                    </li>
+
                     <!-- Tasks Agent -->
                     <li class="nav-item" style="--btn-index: 1;">
-                        <button class="nav-btn active" id="btn-tasks" onclick="switchAgent('tasks')">
+                        <button class="nav-btn" id="btn-tasks" onclick="switchAgent('tasks')">
                             <div class="avatar-container">
                                 <svg viewBox="0 0 24 24" class="avatar-svg svg-tasks">
                                     <rect x="5" y="4" width="14" height="16" rx="2" stroke="#4f9eff" stroke-width="1.5" fill="none" />
@@ -1046,6 +1344,19 @@
     <script>
         // Agent configurations containing custom prompt chips, greetings, and mock replies
         const agentConfigs = {
+            orchestrator: {
+                name: "LifeOS Orchestrator",
+                placeholder: "Ask LifeOS...",
+                greeting: "Hello! I am LifeOS, your intelligent personal coordinator. I will automatically direct your requests to the appropriate specialist agent.",
+                chips: [
+                    "give me my morning brief",
+                    "show my tasks",
+                    "what is my schedule today"
+                ],
+                defaultMockResponses: [
+                    { pattern: /.*/i, reply: "I will route this request to the appropriate specialist." }
+                ]
+            },
             tasks: {
                 name: "Tasks Agent",
                 placeholder: "Ask Tasks Agent (e.g., 'add buy milk to my tasks')...",
@@ -1128,7 +1439,7 @@
         };
 
         // App States
-        let currentAgentKey = "tasks";
+        let currentAgentKey = "orchestrator";
         let chatHistories = {};
 
         // Orchestrator SVGs & Greetings
@@ -1148,7 +1459,7 @@
             // Set Orchestrator header avatar dynamically
             document.getElementById("headerAvatar").innerHTML = orchestratorAvatarSvg;
             
-            switchAgent("tasks");
+            switchAgent("orchestrator");
         });
 
         // Initialize Background Particle Animation Canvas
@@ -1267,25 +1578,23 @@
             const config = agentConfigs[agentKey];
 
             // Update input placeholder to show agent-specific context
-            document.getElementById("chatInput").placeholder = config.placeholder.replace("Ask Tasks Agent", "Ask LifeOS").replace("Ask Schedule Agent", "Ask LifeOS").replace("Ask Finance Agent", "Ask LifeOS").replace("Ask Health Agent", "Ask LifeOS").replace("Ask Morning Brief Agent", "Ask LifeOS");
+            document.getElementById("chatInput").placeholder = config.placeholder;
 
             // Highlight selected button in the sidebar nav
             const buttons = document.querySelectorAll(".nav-btn");
             buttons.forEach(btn => btn.classList.remove("active"));
             
-            let targetBtnId = "btn-tasks";
-            if (agentKey === "schedule") targetBtnId = "btn-schedule";
-            if (agentKey === "finance") targetBtnId = "btn-finance";
-            if (agentKey === "health") targetBtnId = "btn-health";
-            if (agentKey === "brief") targetBtnId = "btn-brief";
-            
-            document.getElementById(targetBtnId).classList.add("active");
+            const targetBtnId = "btn-" + agentKey;
+            const targetBtn = document.getElementById(targetBtnId);
+            if (targetBtn) {
+                targetBtn.classList.add("active");
+            }
 
             // Close mobile menu drawer
             toggleSidebar(false);
 
             // Update the context card details
-            const activeSvgHtml = document.querySelector(`.nav-btn[id="btn-${agentKey}"] .avatar-container`).innerHTML;
+            const activeSvgHtml = document.querySelector(`.nav-btn[id="${targetBtnId}"] .avatar-container`).innerHTML;
             document.getElementById("contextIcon").innerHTML = activeSvgHtml;
             document.getElementById("contextTitle").innerText = `${config.name} Suggestions`;
             document.getElementById("contextDesc").innerText = config.greeting;
@@ -1318,13 +1627,127 @@
             });
         }
 
-        // Renders message bubbles inside scrollpanel (unified orchestrator history)
+        // Resolves CSS class for the agent response badges
+        function getBadgeClass(handledBy) {
+            if (!handledBy) return "agent-badge-orchestrator";
+            const lower = handledBy.toLowerCase();
+            if (lower.includes("task")) return "agent-badge-tasks";
+            if (lower.includes("schedule")) return "agent-badge-schedule";
+            if (lower.includes("finance")) return "agent-badge-finance";
+            if (lower.includes("health")) return "agent-badge-health";
+            if (lower.includes("brief") || lower.includes("notify")) return "agent-badge-briefing";
+            return "agent-badge-orchestrator";
+        }
+
+        // Action handler when suggestion card is clicked
+        function useSuggestion(agentKey, promptText) {
+            switchAgent(agentKey);
+            document.getElementById("chatInput").value = promptText;
+            sendMessage();
+        }
+
+        // Renders message bubbles inside scrollpanel (unified orchestrator history or Home Screen)
         function renderMessages() {
             const container = document.getElementById("messagesStream");
             container.innerHTML = "";
             
             const history = chatHistories["orchestrator"] || [];
             
+            // Check if we should show the Orchestrator Home Screen:
+            // We show it if current agent is orchestrator AND there are no user messages in the history.
+            const hasUserMessages = history.some(msg => msg.sender === "user");
+            
+            if (currentAgentKey === "orchestrator" && !hasUserMessages) {
+                container.innerHTML = `
+                    <div class="home-screen-container">
+                        <div class="ai-face-wrapper">
+                            <div class="pulse-ring"></div>
+                            <div class="pulse-ring delay-1"></div>
+                            <div class="ai-face">
+                                <div class="eye left-eye">
+                                    <div class="pupil"></div>
+                                </div>
+                                <div class="eye right-eye">
+                                    <div class="pupil"></div>
+                                </div>
+                                <div class="mouth"></div>
+                            </div>
+                        </div>
+                        <div class="typewriter-text" id="typewriterText"></div>
+                        <div class="home-suggestions-grid">
+                            <div class="suggestion-card" onclick="useSuggestion('tasks', 'show my tasks')">
+                                <div class="suggestion-card-icon">
+                                    <svg viewBox="0 0 24 24" class="avatar-svg svg-tasks">
+                                        <rect x="5" y="4" width="14" height="16" rx="2" stroke="#4f9eff" stroke-width="1.5" fill="none" />
+                                        <path d="M9 5h6" stroke="#4f9eff" stroke-width="1.5" stroke-linecap="round" />
+                                        <line x1="8" y1="10" x2="12" y2="10" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" />
+                                        <line x1="8" y1="14" x2="11" y2="14" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" />
+                                        <path class="checkmark" d="M13 11l2 2 4-4" stroke="#50fa7b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                                    </svg>
+                                </div>
+                                <span class="suggestion-card-title">Tasks</span>
+                                <span class="suggestion-card-prompt">"show my tasks"</span>
+                            </div>
+                            <div class="suggestion-card" onclick="useSuggestion('schedule', 'what is my schedule today')">
+                                <div class="suggestion-card-icon">
+                                    <svg viewBox="0 0 24 24" class="avatar-svg svg-schedule">
+                                        <circle cx="12" cy="12" r="9" stroke="#4f9eff" stroke-width="1.5" fill="none" />
+                                        <line class="hour-hand" x1="12" y1="12" x2="12" y2="8" stroke="#4f9eff" stroke-width="2" stroke-linecap="round" />
+                                        <line class="minute-hand" x1="12" y1="12" x2="15" y2="12" stroke="#00f2fe" stroke-width="1.5" stroke-linecap="round" />
+                                    </svg>
+                                </div>
+                                <span class="suggestion-card-title">Schedule</span>
+                                <span class="suggestion-card-prompt">"what is my schedule today"</span>
+                            </div>
+                            <div class="suggestion-card" onclick="useSuggestion('finance', 'log ₹200 for lunch')">
+                                <div class="suggestion-card-icon">
+                                    <svg viewBox="0 0 24 24" class="avatar-svg svg-finance">
+                                        <circle cx="12" cy="12" r="8" stroke="#f1fa8c" stroke-width="1.5" fill="none" />
+                                        <text x="12" y="16" fill="#f1fa8c" font-size="12" font-family="'Outfit', sans-serif" font-weight="bold" text-anchor="middle">₹</text>
+                                    </svg>
+                                </div>
+                                <span class="suggestion-card-title">Finance</span>
+                                <span class="suggestion-card-prompt">"log ₹200 for lunch"</span>
+                            </div>
+                            <div class="suggestion-card" onclick="useSuggestion('health', 'show health summary')">
+                                <div class="suggestion-card-icon">
+                                    <svg viewBox="0 0 24 24" class="avatar-svg svg-health">
+                                        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ff5555" />
+                                    </svg>
+                                </div>
+                                <span class="suggestion-card-title">Health</span>
+                                <span class="suggestion-card-prompt">"show health summary"</span>
+                            </div>
+                            <div class="suggestion-card" onclick="useSuggestion('brief', 'give me my morning brief')">
+                                <div class="suggestion-card-icon">
+                                    <svg viewBox="0 0 24 24" class="avatar-svg svg-brief">
+                                        <circle cx="12" cy="12" r="5" fill="#ffb86c" />
+                                        <g class="sun-rays" stroke="#ffb86c" stroke-width="1.5" stroke-linecap="round">
+                                            <line x1="12" y1="2" x2="12" y2="5" />
+                                            <line x1="12" y1="19" x2="12" y2="22" />
+                                            <line x1="2" y1="12" x2="5" y2="12" />
+                                            <line x1="19" y1="12" x2="22" y2="12" />
+                                            <line x1="5" y1="5" x2="7.1" y2="7.1" />
+                                            <line x1="16.9" y1="16.9" x2="19" y2="19" />
+                                            <line x1="5" y1="19" x2="7.1" y2="16.9" />
+                                            <line x1="16.9" y1="7.1" x2="19" y2="5" />
+                                        </g>
+                                    </svg>
+                                </div>
+                                <span class="suggestion-card-title">Morning Brief</span>
+                                <span class="suggestion-card-prompt">"morning brief"</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Start the typewriter effect
+                const welcomeText = "Hello! I am LifeOS, your intelligent personal assistant...";
+                startTypewriterEffect(welcomeText, "typewriterText", 50);
+                return;
+            }
+            
+            // Otherwise, render normal chat bubbles
             history.forEach(msg => {
                 const row = document.createElement("div");
                 row.className = `message-row ${msg.sender}-row`;
@@ -1337,11 +1760,13 @@
                         </div>
                     `;
                 } else {
+                    const badgeText = msg.handledBy || "Orchestrator";
                     row.innerHTML = `
                         <div class="chat-bubble-avatar">
                             ${orchestratorAvatarSvg}
                         </div>
                         <div class="message-bubble-wrapper">
+                            <span class="agent-badge ${getBadgeClass(badgeText)}">Handled by ${badgeText}</span>
                             <div class="message-bubble">${msg.text}</div>
                             <span class="message-time">${msg.timestamp}</span>
                         </div>
@@ -1364,7 +1789,29 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // Send chat message (always routed to the orchestrator agent)
+        // Typewriter text generator
+        function startTypewriterEffect(text, elementId, speed = 50) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            element.innerText = "";
+            let i = 0;
+            
+            if (element.typewriterInterval) {
+                clearInterval(element.typewriterInterval);
+            }
+            
+            element.typewriterInterval = setInterval(() => {
+                if (i < text.length) {
+                    element.innerText += text.charAt(i);
+                    i++;
+                } else {
+                    clearInterval(element.typewriterInterval);
+                    element.style.borderRight = "none"; // Hide cursor when typing is complete
+                }
+            }, speed);
+        }
+
+        // Send chat message (targeted to current specialist agent)
         function sendMessage() {
             const input = document.getElementById("chatInput");
             const text = input.value.trim();
@@ -1383,7 +1830,7 @@
             // 2. Render Agent Bouncing Wave/Thinking indicator
             showTypingIndicator();
 
-            // 3. Connect to backend API at port 8080, targeting orchestrator
+            // 3. Connect to backend API at port 8080, targeting currentAgentKey
             fetch("http://localhost:8080/chat", {
                 method: "POST",
                 headers: {
@@ -1391,7 +1838,7 @@
                 },
                 body: JSON.stringify({
                     message: text,
-                    agent_name: "orchestrator"
+                    agent_name: currentAgentKey
                 })
             })
             .then(res => {
@@ -1406,6 +1853,7 @@
                     sender: "agent", 
                     text: data.response, 
                     timestamp: formatTime(new Date()),
+                    handledBy: data.handled_by || "Orchestrator",
                     agentKey: "orchestrator" 
                 };
                 chatHistories["orchestrator"].push(agentMsg);
@@ -1419,6 +1867,7 @@
                     sender: "agent", 
                     text: "⚠️ **System Error:** Failed to connect to the backend agent at `http://localhost:8080`. Please ensure the FastAPI server is running.", 
                     timestamp: formatTime(new Date()),
+                    handledBy: "Orchestrator",
                     agentKey: "orchestrator" 
                 };
                 chatHistories["orchestrator"].push(agentMsg);
@@ -1432,7 +1881,7 @@
             const container = document.getElementById("messagesStream");
             
             if (document.getElementById("typingIndicatorRow")) return;
-
+ 
             const row = document.createElement("div");
             row.className = "message-row agent-row";
             row.id = "typingIndicatorRow";
@@ -1492,6 +1941,7 @@
                         sender: "agent",
                         text: orchestratorGreeting,
                         timestamp: formatTime(new Date()),
+                        handledBy: "Orchestrator",
                         agentKey: "orchestrator"
                     }
                 ];
