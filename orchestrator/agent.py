@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 import sys
 import os
 from google.adk.agents import Agent
@@ -9,20 +12,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import task_agent
 from task_agent.agent import task_agent
+from schedule_agent.agent import schedule_agent
+from finance_agent.agent import finance_agent
 
-# Placeholder sub-agents for schedule, finance, health, and notify to be fully implemented later.
+# Placeholder sub-agents for health, and notify to be fully implemented later.
 # This prevents import/run errors while satisfying delegation requirements.
-schedule_agent = Agent(
-    name="schedule_agent",
-    description="Specialist agent for managing schedule, meetings, events, and reminders.",
-    instruction="Handle schedule-related requests (meetings, events, reminders). Confirm you are schedule_agent."
-)
-
-finance_agent = Agent(
-    name="finance_agent",
-    description="Specialist agent for managing finances, expenses, budget, and spending.",
-    instruction="Handle finance-related requests (expenses, budget, spending). Confirm you are finance_agent."
-)
 
 health_agent = Agent(
     name="health_agent",
