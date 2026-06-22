@@ -13,6 +13,42 @@ from mcp import StdioServerParameters
 AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
 HEALTH_FILE = os.path.join(AGENT_DIR, "health.json")
 
+# Define custom SecurityError class
+class SecurityError(Exception):
+    """Raised when security or data locality checks fail."""
+    pass
+
+# =====================================================================
+# ZERO-TRUST SECURITY & LOCALITY VERIFICATION
+# =====================================================================
+# Security Comment: Under zero-trust architecture, we must ensure that
+# all data operations, database files, and model context protocol (MCP)
+# environments remain restricted to the local machine. Personal user
+# data (tasks, finances, schedule, health logs) must not be transmitted
+# to unauthorized external cloud databases or third-party networks.
+# =====================================================================
+def verify_local_data_isolation(agent_dir: str):
+    """Verify that all files are stored strictly on the local filesystem
+    and no remote database configurations exist.
+    """
+    abs_dir = os.path.abspath(agent_dir)
+    # Check for UNC path (e.g. \\remote-server) or remote URL schema
+    if abs_dir.startswith("\\\\") or any(abs_dir.startswith(s) for s in ["http://", "https://", "ftp://"]):
+        raise SecurityError("Critical Security Alert: Remote storage detected. Data must remain local.")
+    
+    # Check for unauthorized environment variables attempting to leak data or redirect to external hosts
+    for env_var in ["DB_HOST", "DATABASE_URL", "CLOUD_SQL_CONNECTION_NAME"]:
+        val = os.getenv(env_var)
+        if val and not any(local in val.lower() for local in ["localhost", "127.0.0.1", "::1", "local"]):
+            raise SecurityError(f"Critical Security Alert: External database target detected in {env_var}: {val}")
+
+# Run local data isolation verification
+verify_local_data_isolation(AGENT_DIR)
+
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from security.telemetry import log_agent_call, make_before_callback, make_after_callback
+
 # Instantiate filesystem MCP server mapped to the health agent directory
 filesystem_toolset = McpToolset(
     connection_params=StdioServerParameters(
@@ -65,7 +101,9 @@ def log_meal(name: str, calories: int) -> str:
     records.append(new_record)
     _write_health(records)
     
-    return f"Logged {name} ({calories} kcal) ✅"
+    res = f"Logged {name} ({calories} kcal) ✅"
+    log_agent_call("health_agent", f"log_meal(name={name}, calories={calories})", res)
+    return res
 
 def log_workout(workout_type: str, duration: int) -> str:
     """Log a physical workout with its type and duration in minutes.
@@ -90,7 +128,9 @@ def log_workout(workout_type: str, duration: int) -> str:
     records.append(new_record)
     _write_health(records)
     
-    return f"Logged {duration} min {workout_type} ✅"
+    res = f"Logged {duration} min {workout_type} ✅"
+    log_agent_call("health_agent", f"log_workout(type={workout_type}, duration={duration})", res)
+    return res
 
 def show_health_summary() -> str:
     """Read and show today's logged meals and workouts from the health records.
@@ -104,7 +144,9 @@ def show_health_summary() -> str:
     today_records = [r for r in records if r.get("date") == today_str]
     
     if not today_records:
-        return f"No health records logged for today ({today_str})! 🎉"
+        res = f"No health records logged for today ({today_str})! 🎉"
+        log_agent_call("health_agent", "show_health_summary", res)
+        return res
         
     meals = [r for r in today_records if r.get("type") == "meal"]
     workouts = [r for r in today_records if r.get("type") == "workout"]
@@ -129,7 +171,9 @@ def show_health_summary() -> str:
     else:
         summary += "- No workouts logged today.\n"
         
-    return summary.strip()
+    res = summary.strip()
+    log_agent_call("health_agent", "show_health_summary", res)
+    return res
 
 def get_health_data() -> str:
     """Return the raw JSON health data for integration with other agents (like the Notify Agent).
@@ -138,7 +182,9 @@ def get_health_data() -> str:
         A JSON string containing the raw list of all health records.
     """
     records = _read_health()
-    return json.dumps(records)
+    res = json.dumps(records)
+    log_agent_call("health_agent", "get_health_data", f"Returned {len(records)} records")
+    return res
 
 # Create the Health Agent
 health_agent = Agent(
@@ -161,5 +207,8 @@ health_agent = Agent(
     2. Save all health data to health.json immediately.
     3. Be polite, clear, and structured in your responses.
     """,
-    tools=[log_meal, log_workout, show_health_summary, get_health_data, filesystem_toolset]
+    tools=[log_meal, log_workout, show_health_summary, get_health_data, filesystem_toolset],
+    before_agent_callback=make_before_callback("health_agent"),
+    after_agent_callback=make_after_callback("health_agent")
 )
+

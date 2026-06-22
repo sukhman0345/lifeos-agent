@@ -9,6 +9,43 @@ from mcp import StdioServerParameters
 # Define path to task_agent directory
 AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# Define custom SecurityError class
+class SecurityError(Exception):
+    """Raised when security or data locality checks fail."""
+    pass
+
+# =====================================================================
+# ZERO-TRUST SECURITY & LOCALITY VERIFICATION
+# =====================================================================
+# Security Comment: Under zero-trust architecture, we must ensure that
+# all data operations, database files, and model context protocol (MCP)
+# environments remain restricted to the local machine. Personal user
+# data (tasks, finances, schedule, health logs) must not be transmitted
+# to unauthorized external cloud databases or third-party networks.
+# =====================================================================
+def verify_local_data_isolation(agent_dir: str):
+    """Verify that all files are stored strictly on the local filesystem
+    and no remote database configurations exist.
+    """
+    abs_dir = os.path.abspath(agent_dir)
+    # Check for UNC path (e.g. \\remote-server) or remote URL schema
+    if abs_dir.startswith("\\\\") or any(abs_dir.startswith(s) for s in ["http://", "https://", "ftp://"]):
+        raise SecurityError("Critical Security Alert: Remote storage detected. Data must remain local.")
+    
+    # Check for unauthorized environment variables attempting to leak data or redirect to external hosts
+    for env_var in ["DB_HOST", "DATABASE_URL", "CLOUD_SQL_CONNECTION_NAME"]:
+        val = os.getenv(env_var)
+        if val and not any(local in val.lower() for local in ["localhost", "127.0.0.1", "::1", "local"]):
+            raise SecurityError(f"Critical Security Alert: External database target detected in {env_var}: {val}")
+
+# Run local data isolation verification
+verify_local_data_isolation(AGENT_DIR)
+
+
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from security.telemetry import make_before_callback, make_after_callback
+
 # Instantiate filesystem MCP toolset mapped to the task agent directory
 filesystem_toolset = McpToolset(
     connection_params=StdioServerParameters(
@@ -42,5 +79,8 @@ task_agent = Agent(
     3. Always confirm back to the user after completing every action successfully.
     4. Be polite, clear, and structured in your responses.
     """,
-    tools=[filesystem_toolset]
+    tools=[filesystem_toolset],
+    before_agent_callback=make_before_callback("task_agent"),
+    after_agent_callback=make_after_callback("task_agent")
 )
+
