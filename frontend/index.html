@@ -1082,6 +1082,267 @@
             border-color: rgba(255, 184, 108, 0.3);
         }
 
+        /* ==========================================================================
+           ROBOT FACE FOR SUB-AGENTS
+           ========================================================================== */
+        .robot-face-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 500px;
+            margin: auto;
+            gap: 30px;
+            text-align: center;
+            padding: 40px 20px;
+            animation: fadeInPage 0.8s ease-out;
+        }
+
+        .robot-face-wrapper {
+            position: relative;
+            width: 180px;
+            height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .robot-face {
+            position: relative;
+            width: 140px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(20, 25, 55, 0.95) 0%, rgba(8, 10, 25, 0.98) 100%);
+            border: 3px solid var(--robot-theme-color, #4f9eff);
+            border-radius: 24px;
+            box-shadow: 0 0 35px var(--robot-theme-glow, rgba(79, 158, 255, 0.25)), inset 0 0 20px rgba(79, 158, 255, 0.15);
+            animation: robotBreathing 4s ease-in-out infinite;
+            z-index: 2;
+        }
+
+        /* Robot ears */
+        .robot-face::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -10px;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 30px;
+            background: var(--robot-theme-color, #4f9eff);
+            border-radius: 4px;
+        }
+        .robot-face::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            right: -10px;
+            transform: translateY(-50%);
+            width: 8px;
+            height: 30px;
+            background: var(--robot-theme-color, #4f9eff);
+            border-radius: 4px;
+        }
+
+        /* Robot Antenna */
+        .robot-antenna {
+            position: absolute;
+            top: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 6px;
+            height: 25px;
+            background: var(--robot-theme-color, #4f9eff);
+            z-index: 1;
+        }
+        .robot-antenna-tip {
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 14px;
+            height: 14px;
+            background: var(--robot-theme-color, #4f9eff);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--robot-theme-color, #4f9eff);
+            animation: antennaPulse 1.5s infinite alternate ease-in-out;
+            z-index: 1;
+        }
+
+        .robot-eye {
+            width: 22px;
+            height: 22px;
+            background-color: #050714;
+            border: 2px solid var(--robot-theme-color, #4f9eff);
+            border-radius: 50%;
+            position: absolute;
+            top: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: robotEyeBlink 3.2s infinite;
+            box-shadow: 0 0 12px var(--robot-theme-glow, rgba(79, 158, 255, 0.4));
+        }
+
+        .robot-eye.left-eye {
+            left: 30px;
+        }
+
+        .robot-eye.right-eye {
+            right: 30px;
+        }
+
+        .robot-pupil {
+            width: 8px;
+            height: 8px;
+            background-color: var(--robot-theme-eye-color, #00f2fe);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--robot-theme-eye-color, #00f2fe);
+        }
+
+        .robot-mouth {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 6px;
+            background-color: var(--robot-theme-color, #4f9eff);
+            border-radius: 3px;
+            box-shadow: 0 0 8px var(--robot-theme-glow, rgba(79, 158, 255, 0.4));
+            animation: robotMouthBreathing 4s ease-in-out infinite;
+            transition: all 0.15s ease;
+        }
+
+        /* Talking Robot Face styling when speaking */
+        .robot-face.speaking {
+            border-color: var(--robot-theme-color, #4f9eff) !important;
+            box-shadow: 0 0 45px var(--robot-theme-color, rgba(79, 158, 255, 0.45)), inset 0 0 25px rgba(79, 158, 255, 0.25) !important;
+        }
+
+        .robot-face.speaking .robot-mouth {
+            background-color: var(--robot-theme-color, #4f9eff) !important;
+            animation: robotSpeaking 0.15s infinite alternate ease-in-out !important;
+            box-shadow: 0 0 15px var(--robot-theme-color, rgba(79, 158, 255, 0.6)) !important;
+        }
+
+        .robot-face-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-top: 10px;
+        }
+
+        .robot-face-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            max-width: 400px;
+            line-height: 1.5;
+            min-height: 80px; /* Prevent layout shift during typewriter */
+        }
+
+        /* Robot Capabilities Grid & Cards */
+        .robot-capabilities-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 16px;
+            width: 100%;
+            margin-top: 15px;
+            animation: slideInUpBubble 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+
+        .capability-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 14px;
+            width: 145px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            text-align: center;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .capability-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .capability-card-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .capability-card-desc {
+            font-size: 10px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* Keyframes */
+        @keyframes robotBreathing {
+            0%, 100% {
+                transform: translateY(0);
+                box-shadow: 0 0 35px var(--robot-theme-glow, rgba(79, 158, 255, 0.25)), inset 0 0 20px rgba(79, 158, 255, 0.15);
+            }
+            50% {
+                transform: translateY(-6px);
+                box-shadow: 0 8px 45px var(--robot-theme-glow, rgba(79, 158, 255, 0.4)), inset 0 0 25px rgba(79, 158, 255, 0.2);
+            }
+        }
+
+        @keyframes robotEyeBlink {
+            0%, 95%, 100% {
+                transform: scaleY(1);
+            }
+            97.5% {
+                transform: scaleY(0.1);
+            }
+        }
+
+        @keyframes robotMouthBreathing {
+            0%, 100% {
+                width: 50px;
+                transform: translateX(-50%) scaleX(1);
+            }
+            50% {
+                width: 58px;
+                transform: translateX(-50%) scaleX(1.1);
+            }
+        }
+
+        @keyframes robotSpeaking {
+            0% {
+                height: 4px;
+                width: 40px;
+                transform: translateX(-50%) scaleY(1);
+            }
+            100% {
+                height: 16px; /* Speaks open mouth */
+                width: 50px;
+                transform: translateX(-50%) scaleY(1.3);
+                border-radius: 6px;
+            }
+        }
+
+        @keyframes antennaPulse {
+            0% {
+                opacity: 0.6;
+                box-shadow: 0 0 5px var(--robot-theme-color, #4f9eff);
+            }
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 20px var(--robot-theme-color, #4f9eff);
+            }
+        }
+
 
         /* ==========================================================================
            RESPONSIVE VIEWPORTS
@@ -1366,6 +1627,11 @@
                     "add buy milk to my tasks",
                     "complete buy groceries"
                 ],
+                capabilities: [
+                    { title: "Task Creation", desc: "Instantly create and track new tasks" },
+                    { title: "Priority Levels", desc: "Classify priority as high, normal, or low" },
+                    { title: "Status Updates", desc: "Mark tasks as complete with one command" }
+                ],
                 defaultMockResponses: [
                     { pattern: /add\s+(.+)\s+to\s+my\s+tasks/i, reply: "Done! Added \"{match1}\" to your tasks ✅" },
                     { pattern: /show\s+my\s+tasks|list\s+tasks/i, reply: "📋 **Here are your pending tasks:**\n\n1. Buy groceries (normal priority)\n2. Complete Capstone Project frontend (high priority)\n3. Check water plants (low priority)" },
@@ -1381,6 +1647,11 @@
                     "what is my schedule today",
                     "schedule sync tomorrow at 3pm",
                     "schedule standup"
+                ],
+                capabilities: [
+                    { title: "Event Booking", desc: "Schedule meetings, standups, or reminders" },
+                    { title: "Daily Agenda", desc: "Review today's events at a glance" },
+                    { title: "Conflict Detection", desc: "Ensure meetings never overlap in your calendar" }
                 ],
                 defaultMockResponses: [
                     { pattern: /schedule\s+(.+)\s+on\s+(.+)\s+at\s+(.+)/i, reply: "Scheduled \"{match1}\" on {match2} at {match3} ✅" },
@@ -1399,6 +1670,11 @@
                     "log ₹200 for lunch",
                     "clear expenses"
                 ],
+                capabilities: [
+                    { title: "Log Expenses", desc: "Record costs for food, commute, utilities, etc." },
+                    { title: "Daily Budgets", desc: "Ensure daily spending remains within budget limits" },
+                    { title: "Expense Summaries", desc: "Review total logged spending instantly" }
+                ],
                 defaultMockResponses: [
                     { pattern: /log\s+(.+)\s+for\s+(.+)/i, reply: "Logged {match1} for {match2}. Updated daily total: {match1} ✅" },
                     { pattern: /show\s+my\s+expenses|show\s+expenses|expenses\s+today/i, reply: "💰 **Today's itemized expenses:**\n\n- Coffee: ₹150\n- Lunch: ₹350\n- Taxi ride: ₹200\n\n**Total logged today: ₹700**" },
@@ -1416,6 +1692,11 @@
                     "log salad",
                     "log 30 min walk"
                 ],
+                capabilities: [
+                    { title: "Meal Tracking", desc: "Log meals like breakfast, lunch, or dinners" },
+                    { title: "Workout Logging", desc: "Keep record of run, walk, or yoga durations" },
+                    { title: "Wellness Summaries", desc: "Read consolidated logs of daily nutrition & exercises" }
+                ],
                 defaultMockResponses: [
                     { pattern: /log\s+(.+)\s+workout|log\s+(\d+\s+min\s+\w+)/i, reply: "Logged workout: {match1} ✅" },
                     { pattern: /log\s+(.+)/i, reply: "Logged meal/activity: \"{match1}\" ✅" },
@@ -1431,8 +1712,13 @@
                     "give me my morning brief",
                     "show summary"
                 ],
+                capabilities: [
+                    { title: "Multi-Agent Summaries", desc: "Gather briefings from Tasks, Finance, Schedule & Health" },
+                    { title: "Intelligent Synthesis", desc: "Synthesize complex schedules into one brief report" },
+                    { title: "Morning Preparation", desc: "Highlight critical priorities for your upcoming day" }
+                ],
                 defaultMockResponses: [
-                    { pattern: /brief|summary|morning\s+brief/i, reply: "☀️ **Good morning! Here is your daily Briefing:**\n\n📋 **Pending Tasks**:\n- Complete slide deck (high priority)\n- Buy groceries\n\n📅 **Today's Schedule**:\n- 10:00 AM: Team Sync & Standup\n- 01:00 PM: Client review call\n\n💰 **Finance & Budget**:\n- Today's expenses: ₹0 logged so far.\n\n🥗 **Health & Wellness**:\n- No meals or workouts logged yet today.\n\nLet me know if you want me to write down any new tasks or change anything!" },
+                    { pattern: /brief|summary|morning\s+brief/i, reply: "☀️ **Good morning! Here is your daily Briefing:**\n\n📋 **Pending Tasks**:\n- Complete slide deck (high priority)\n- Buy groceries\n\n📅 **Today's Schedule**:\n- 10:00 AM: Team Sync & Standup\n- 01:00 PM: Client review call\n- 04:30 PM: Gym session" },
                     { pattern: /.*/i, reply: "I can compile a comprehensive daily report of your schedule, tasks, budget, and health. Simply say 'give me my morning brief'." }
                 ]
             }
@@ -1441,6 +1727,10 @@
         // App States
         let currentAgentKey = "orchestrator";
         let chatHistories = {};
+        let activeTypewriterInterval = null;
+        window.config = {
+            geminiApiKey: ""
+        };
 
         // Orchestrator SVGs & Greetings
         const orchestratorAvatarSvg = `
@@ -1458,6 +1748,14 @@
             
             // Set Orchestrator header avatar dynamically
             document.getElementById("headerAvatar").innerHTML = orchestratorAvatarSvg;
+            
+            // Fetch Gemini API Key from local backend
+            fetch("http://localhost:8080/config")
+                .then(res => res.json())
+                .then(data => {
+                    window.config.geminiApiKey = data.gemini_api_key || "";
+                })
+                .catch(err => console.error("Failed to load Gemini config:", err));
             
             switchAgent("orchestrator");
         });
@@ -1577,6 +1875,16 @@
             currentAgentKey = agentKey;
             const config = agentConfigs[agentKey];
 
+            // Show input box only on main orchestrator screen
+            const inputOuter = document.querySelector(".input-outer-wrapper");
+            if (inputOuter) {
+                if (agentKey === "orchestrator") {
+                    inputOuter.style.display = "block";
+                } else {
+                    inputOuter.style.display = "none";
+                }
+            }
+
             // Update input placeholder to show agent-specific context
             document.getElementById("chatInput").placeholder = config.placeholder;
 
@@ -1605,8 +1913,10 @@
             // Redraw active agent history in chat logs panel (unified orchestrator history)
             renderMessages();
 
-            // Refocus text entry input
-            document.getElementById("chatInput").focus();
+            // Refocus text entry input only if active
+            if (agentKey === "orchestrator") {
+                document.getElementById("chatInput").focus();
+            }
         }
 
         // Renders example prompt chips
@@ -1646,15 +1956,131 @@
             sendMessage();
         }
 
-        // Renders message bubbles inside scrollpanel (unified orchestrator history or Home Screen)
+        // Renders message bubbles inside scrollpanel (unified orchestrator history, Home Screen, or Robot screen)
         function renderMessages() {
             const container = document.getElementById("messagesStream");
             container.innerHTML = "";
             
+            // Clear any active typewriter immediately upon rendering/switching views
+            if (activeTypewriterInterval) {
+                clearInterval(activeTypewriterInterval);
+                activeTypewriterInterval = null;
+            }
+            
             const history = chatHistories["orchestrator"] || [];
             
-            // Check if we should show the Orchestrator Home Screen:
-            // We show it if current agent is orchestrator AND there are no user messages in the history.
+            // 1. If we are on a sub-agent page: show the animated robot face!
+            if (currentAgentKey !== "orchestrator") {
+                const config = agentConfigs[currentAgentKey];
+                const activeKey = currentAgentKey; // Capture current agent key for safety
+                
+                // Set theme colors based on agentKey
+                let themeColor = "#4f9eff";
+                let themeGlow = "rgba(79, 158, 255, 0.25)";
+                let eyeColor = "#00f2fe";
+                
+                if (currentAgentKey === "tasks") {
+                    themeColor = "#4f9eff";
+                    themeGlow = "rgba(79, 158, 255, 0.25)";
+                    eyeColor = "#00f2fe";
+                } else if (currentAgentKey === "schedule") {
+                    themeColor = "#bd93f9";
+                    themeGlow = "rgba(189, 147, 249, 0.25)";
+                    eyeColor = "#ff79c6";
+                } else if (currentAgentKey === "finance") {
+                    themeColor = "#50fa7b";
+                    themeGlow = "rgba(80, 250, 123, 0.25)";
+                    eyeColor = "#8be9fd";
+                } else if (currentAgentKey === "health") {
+                    themeColor = "#ff5555";
+                    themeGlow = "rgba(255, 85, 85, 0.25)";
+                    eyeColor = "#ffb86c";
+                } else if (currentAgentKey === "brief") {
+                    themeColor = "#f1fa8c";
+                    themeGlow = "rgba(241, 250, 140, 0.25)";
+                    eyeColor = "#ffb86c";
+                }
+                
+                container.innerHTML = `
+                    <div class="robot-face-container" style="--robot-theme-color: ${themeColor}; --robot-theme-glow: ${themeGlow}; --robot-theme-eye-color: ${eyeColor};">
+                        <div class="robot-face-wrapper">
+                            <div class="robot-antenna"></div>
+                            <div class="robot-antenna-tip"></div>
+                            <div class="robot-face" id="robotFaceEl">
+                                <div class="robot-eye left-eye">
+                                    <div class="robot-pupil"></div>
+                                </div>
+                                <div class="robot-eye right-eye">
+                                    <div class="robot-pupil"></div>
+                                </div>
+                                <div class="robot-mouth"></div>
+                            </div>
+                        </div>
+                        <h2 class="robot-face-title">${config.name}</h2>
+                        <p class="robot-face-desc" id="robotFaceDesc">Connecting and analyzing agent SKILL.md...</p>
+                        <div class="robot-capabilities-grid" id="robotCapabilities" style="display: none;"></div>
+                    </div>
+                `;
+                
+                // Fetch the skill from the backend
+                fetch(`http://localhost:8080/skill/${activeKey}`)
+                    .then(res => {
+                        if (!res.ok) throw new Error("Failed to load skill");
+                        return res.json();
+                    })
+                    .then(skillData => {
+                        const apiKey = window.config && window.config.geminiApiKey;
+                        if (!apiKey) {
+                            throw new Error("Gemini API key not found in environment. Using fallback greeting.");
+                        }
+                        
+                        // Call Gemini API directly
+                        const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                        const prompt = `Based on the following SKILL.md document, write a short, high-tech, welcoming greeting from the perspective of this agent explaining their role, capabilities, and how they can help the user. Keep it under 2-3 sentences and sound like a helpful, friendly AI specialist:\n\n${skillData.content}`;
+                        
+                        return fetch(apiURL, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                contents: [{
+                                    parts: [{ text: prompt }]
+                                }]
+                            })
+                        });
+                    })
+                    .then(res => {
+                        if (!res || !res.ok) {
+                            throw new Error("Gemini API call failed or was bypassed. Using fallback greeting.");
+                        }
+                        return res.json();
+                    })
+                    .then(geminiData => {
+                        // Safety check if we switched away in the meantime
+                        if (currentAgentKey !== activeKey) return;
+                        
+                        let textToType = "";
+                        try {
+                            textToType = geminiData.candidates[0].content.parts[0].text;
+                        } catch (e) {
+                            textToType = config.greeting;
+                        }
+                        
+                        // Start word typewriter with robot animation
+                        animateRobotSpeaking(textToType, activeKey);
+                    })
+                    .catch(err => {
+                        console.warn(err.message);
+                        if (currentAgentKey !== activeKey) return;
+                        
+                        // Fallback greeting
+                        animateRobotSpeaking(config.greeting, activeKey);
+                    });
+                return;
+            }
+            
+            // 2. If we are on Orchestrator and there are no user messages: show Home Screen!
             const hasUserMessages = history.some(msg => msg.sender === "user");
             
             if (currentAgentKey === "orchestrator" && !hasUserMessages) {
@@ -1789,23 +2215,83 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // Typewriter text generator
+        // Toggles robot mouth speaking classes and drives typewriter
+        function animateRobotSpeaking(text, agentKey) {
+            const robotFace = document.getElementById("robotFaceEl");
+            if (robotFace) {
+                robotFace.classList.add("speaking");
+            }
+            startWordTypewriterEffect(text, "robotFaceDesc", 120, () => {
+                if (robotFace) {
+                    robotFace.classList.remove("speaking");
+                }
+                if (currentAgentKey === agentKey) {
+                    showCapabilities(agentKey);
+                }
+            });
+        }
+
+        // Show capability cards under sub-agent robot face
+        function showCapabilities(agentKey) {
+            const capabilitiesGrid = document.getElementById("robotCapabilities");
+            if (!capabilitiesGrid) return;
+            
+            const config = agentConfigs[agentKey];
+            if (!config || !config.capabilities) return;
+            
+            capabilitiesGrid.innerHTML = config.capabilities.map(cap => `
+                <div class="capability-card">
+                    <span class="capability-card-title">${escapeHTML(cap.title)}</span>
+                    <span class="capability-card-desc">${escapeHTML(cap.desc)}</span>
+                </div>
+            `).join("");
+            
+            capabilitiesGrid.style.display = "flex";
+        }
+
+        // Word by Word Typewriter text generator
+        function startWordTypewriterEffect(text, elementId, speed = 120, onComplete) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            element.innerText = "";
+            
+            const words = text.split(/\s+/);
+            let i = 0;
+            
+            if (activeTypewriterInterval) {
+                clearInterval(activeTypewriterInterval);
+            }
+            
+            activeTypewriterInterval = setInterval(() => {
+                if (i < words.length) {
+                    element.innerText += (i === 0 ? "" : " ") + words[i];
+                    i++;
+                } else {
+                    clearInterval(activeTypewriterInterval);
+                    activeTypewriterInterval = null;
+                    if (onComplete) onComplete();
+                }
+            }, speed);
+        }
+
+        // Typewriter text generator (Letter-by-Letter)
         function startTypewriterEffect(text, elementId, speed = 50) {
             const element = document.getElementById(elementId);
             if (!element) return;
             element.innerText = "";
             let i = 0;
             
-            if (element.typewriterInterval) {
-                clearInterval(element.typewriterInterval);
+            if (activeTypewriterInterval) {
+                clearInterval(activeTypewriterInterval);
             }
             
-            element.typewriterInterval = setInterval(() => {
+            activeTypewriterInterval = setInterval(() => {
                 if (i < text.length) {
                     element.innerText += text.charAt(i);
                     i++;
                 } else {
-                    clearInterval(element.typewriterInterval);
+                    clearInterval(activeTypewriterInterval);
+                    activeTypewriterInterval = null;
                     element.style.borderRight = "none"; // Hide cursor when typing is complete
                 }
             }, speed);

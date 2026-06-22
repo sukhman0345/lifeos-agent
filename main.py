@@ -71,6 +71,53 @@ AGENT_MAPPING = {
     "notify_agent": notify_agent,
 }
 
+@app.get("/skill/{agent_key}")
+async def get_skill(agent_key: str):
+    """
+    GET /skill/{agent_key}
+    Reads and returns the contents of the agent's SKILL.md file.
+    """
+    agent_key = agent_key.lower().strip()
+    
+    # Map friendly names to folder names
+    folder_mapping = {
+        "tasks": "task_agent",
+        "task_agent": "task_agent",
+        "schedule": "schedule_agent",
+        "schedule_agent": "schedule_agent",
+        "finance": "finance_agent",
+        "finance_agent": "finance_agent",
+        "health": "health_agent",
+        "health_agent": "health_agent",
+        "brief": "notify_agent",
+        "notify_agent": "notify_agent",
+    }
+    
+    folder = folder_mapping.get(agent_key)
+    if not folder:
+        raise HTTPException(status_code=400, detail=f"Invalid agent key: {agent_key}")
+        
+    skill_file_path = os.path.join(ROOT_DIR, folder, "SKILL.md")
+    
+    if not os.path.exists(skill_file_path):
+        raise HTTPException(status_code=404, detail=f"SKILL.md not found for agent: {agent_key}")
+        
+    try:
+        with open(skill_file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        return {"content": content}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read SKILL.md: {str(e)}")
+
+@app.get("/config")
+async def get_config():
+    """
+    GET /config
+    Returns configuration details needed by the frontend, including the mapped API key.
+    """
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or ""
+    return {"gemini_api_key": api_key}
+
 @app.post("/chat")
 async def chat(request: ChatRequest):
     """
