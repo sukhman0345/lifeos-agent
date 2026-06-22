@@ -135,7 +135,55 @@ async def chat(request: ChatRequest):
         if not response_text:
             response_text = "I completed the action but did not yield a written response."
             
-        return {"response": response_text}
+        # Resolve which agent handled the request
+        friendly_names = {
+            "orchestrator": "Orchestrator",
+            "tasks": "Task Agent",
+            "task_agent": "Task Agent",
+            "schedule": "Schedule Agent",
+            "schedule_agent": "Schedule Agent",
+            "finance": "Finance Agent",
+            "finance_agent": "Finance Agent",
+            "health": "Health Agent",
+            "health_agent": "Health Agent",
+            "brief": "Briefing Agent",
+            "notify_agent": "Briefing Agent"
+        }
+        
+        handled_by = "Orchestrator"
+        if agent_key != "orchestrator" and agent_key in AGENT_MAPPING:
+            handled_by = friendly_names.get(agent_key, "Orchestrator")
+        else:
+            if updated_session and updated_session.events:
+                for ev in reversed(updated_session.events):
+                    ev_agent = getattr(ev, "agent_name", None)
+                    if ev_agent and ev_agent.lower() != "lifeos_orchestrator":
+                        clean_ev_agent = ev_agent.lower().strip()
+                        if clean_ev_agent in friendly_names:
+                            handled_by = friendly_names[clean_ev_agent]
+                            break
+                        for k, friendly in friendly_names.items():
+                            if k in clean_ev_agent:
+                                handled_by = friendly
+                                break
+                        if handled_by != "Orchestrator":
+                            break
+                            
+        # Multi-layer fallback keyword search in response text
+        if handled_by == "Orchestrator" and response_text:
+            text_lower = response_text.lower()
+            if "task agent" in text_lower or "tasks agent" in text_lower:
+                handled_by = "Task Agent"
+            elif "schedule agent" in text_lower:
+                handled_by = "Schedule Agent"
+            elif "finance agent" in text_lower:
+                handled_by = "Finance Agent"
+            elif "health agent" in text_lower:
+                handled_by = "Health Agent"
+            elif "briefing agent" in text_lower or "morning brief" in text_lower:
+                handled_by = "Briefing Agent"
+            
+        return {"response": response_text, "handled_by": handled_by}
         
     except Exception as e:
         # Log stacktrace for server-side debugging
