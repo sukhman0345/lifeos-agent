@@ -25,6 +25,7 @@ from schedule_agent.agent import schedule_agent
 from finance_agent.agent import finance_agent
 from health_agent.agent import health_agent
 from notify_agent.agent import notify_agent
+from orchestrator.agent import root_agent as orchestrator_agent
 
 # Initialize FastAPI App
 app = FastAPI(
@@ -56,6 +57,8 @@ session_service = InMemorySessionService()
 
 # Agent mapping lookup table
 AGENT_MAPPING = {
+    "orchestrator": orchestrator_agent,
+    "lifeos_orchestrator": orchestrator_agent,
     "tasks": task_agent,
     "task_agent": task_agent,
     "schedule": schedule_agent,

@@ -565,6 +565,56 @@
         }
 
         /* ==========================================================================
+           AGENT CONTEXT CARD
+           ========================================================================== */
+        .agent-context-card {
+            max-width: 800px;
+            margin: 0 auto 12px auto;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 12px 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            backdrop-filter: blur(16px);
+            animation: slideInUpBubble 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+            box-shadow: var(--glass-shadow);
+        }
+        .context-icon-wrapper {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(79, 158, 255, 0.05);
+            border: 1px solid rgba(79, 158, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+        }
+        .context-icon-wrapper .avatar-svg {
+            width: 20px;
+            height: 20px;
+        }
+        .context-details {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .context-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent-neon);
+        }
+        .context-desc {
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* ==========================================================================
            INPUT SECTION (FLOATING CHAT PILL)
            ========================================================================== */
         .input-outer-wrapper {
@@ -930,16 +980,16 @@
                         <span class="material-symbols-outlined">menu</span>
                     </button>
                     
-                    <!-- Avatar slot displaying the current active agent's avatar -->
+                    <!-- Avatar slot displaying the orchestrator avatar -->
                     <div class="header-avatar-slot" id="headerAvatar">
                         <!-- Cloned SVG avatar loads here -->
                     </div>
 
                     <div class="agent-title-container">
-                        <h2 class="agent-title" id="activeAgentTitle">Tasks Agent</h2>
+                        <h2 class="agent-title" id="activeAgentTitle">LifeOS Orchestrator</h2>
                         <div class="status-container">
                             <span class="status-dot"></span>
-                            <span class="status-text">Agent active</span>
+                            <span class="status-text">Orchestrator active</span>
                         </div>
                     </div>
                 </div>
@@ -958,6 +1008,15 @@
 
             <!-- Input area containing floating input box and prompt chips -->
             <footer class="input-outer-wrapper">
+                <!-- Sleek Agent Context Card -->
+                <div class="agent-context-card" id="agentContextCard">
+                    <div class="context-icon-wrapper" id="contextIcon"></div>
+                    <div class="context-details">
+                        <span class="context-title" id="contextTitle">Tasks Agent Suggestions</span>
+                        <span class="context-desc" id="contextDesc">Manage to-dos & lists. Click suggestions below to populate.</span>
+                    </div>
+                </div>
+
                 <!-- Example Prompt Chips (Click to run) -->
                 <div class="chips-container" id="chipsContainer">
                     <!-- Rendered dynamically depending on the selected agent -->
@@ -969,7 +1028,7 @@
                         type="text" 
                         id="chatInput" 
                         class="chat-input" 
-                        placeholder="Ask Tasks Agent..." 
+                        placeholder="Ask LifeOS..." 
                         onkeydown="handleKeyDown(event)"
                         autocomplete="off"
                     >
@@ -1072,10 +1131,23 @@
         let currentAgentKey = "tasks";
         let chatHistories = {};
 
+        // Orchestrator SVGs & Greetings
+        const orchestratorAvatarSvg = `
+            <svg class="avatar-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 17C9.24 17 7 14.76 7 12C7 9.24 9.24 7 12 7C14.76 7 17 9.24 17 12C17 14.76 14.76 17 12 17Z" fill="url(#grad1)"/>
+                <path d="M12 5C8.13 5 5 8.13 5 12C5 15.87 8.13 19 12 19C15.87 19 19 15.87 19 12" fill="none" stroke="url(#grad2)" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+        `;
+        const orchestratorGreeting = "Hello! I am LifeOS, your intelligent personal coordinator. I can help you manage tasks, schedule meetings, log finances, track health, and generate summaries. I will automatically direct your requests to the appropriate specialist agent. What can I do for you today?";
+
         // On document load
         window.addEventListener("DOMContentLoaded", () => {
             initCanvasParticles();
             loadChatHistories();
+            
+            // Set Orchestrator header avatar dynamically
+            document.getElementById("headerAvatar").innerHTML = orchestratorAvatarSvg;
+            
             switchAgent("tasks");
         });
 
@@ -1148,19 +1220,17 @@
                 }
             }
 
-            // Initialize greeting message for any empty histories
-            Object.keys(agentConfigs).forEach(key => {
-                if (!chatHistories[key] || chatHistories[key].length === 0) {
-                    chatHistories[key] = [
-                        {
-                            sender: "agent",
-                            text: agentConfigs[key].greeting,
-                            timestamp: formatTime(new Date()),
-                            agentKey: key
-                        }
-                    ];
-                }
-            });
+            // Initialize greeting message for orchestrator if empty
+            if (!chatHistories["orchestrator"] || chatHistories["orchestrator"].length === 0) {
+                chatHistories["orchestrator"] = [
+                    {
+                        sender: "agent",
+                        text: orchestratorGreeting,
+                        timestamp: formatTime(new Date()),
+                        agentKey: "orchestrator"
+                    }
+                ];
+            }
             saveChatHistories();
         }
 
@@ -1191,18 +1261,13 @@
             }
         }
 
-        // Switch active agent specialist
+        // Switch active agent specialist context
         function switchAgent(agentKey) {
             currentAgentKey = agentKey;
             const config = agentConfigs[agentKey];
 
-            // Update header name and input placeholder
-            document.getElementById("activeAgentTitle").innerText = config.name;
-            document.getElementById("chatInput").placeholder = config.placeholder;
-
-            // Clone sidebar button's SVG avatar and place it into the header slot
-            const activeSvgHtml = document.querySelector(`.nav-btn[id="btn-${agentKey}"] .avatar-container`).innerHTML;
-            document.getElementById("headerAvatar").innerHTML = activeSvgHtml;
+            // Update input placeholder to show agent-specific context
+            document.getElementById("chatInput").placeholder = config.placeholder.replace("Ask Tasks Agent", "Ask LifeOS").replace("Ask Schedule Agent", "Ask LifeOS").replace("Ask Finance Agent", "Ask LifeOS").replace("Ask Health Agent", "Ask LifeOS").replace("Ask Morning Brief Agent", "Ask LifeOS");
 
             // Highlight selected button in the sidebar nav
             const buttons = document.querySelectorAll(".nav-btn");
@@ -1219,10 +1284,16 @@
             // Close mobile menu drawer
             toggleSidebar(false);
 
+            // Update the context card details
+            const activeSvgHtml = document.querySelector(`.nav-btn[id="btn-${agentKey}"] .avatar-container`).innerHTML;
+            document.getElementById("contextIcon").innerHTML = activeSvgHtml;
+            document.getElementById("contextTitle").innerText = `${config.name} Suggestions`;
+            document.getElementById("contextDesc").innerText = config.greeting;
+
             // Redraw prompt chips below input
             renderPromptChips(config.chips);
 
-            // Redraw active agent history in chat logs panel
+            // Redraw active agent history in chat logs panel (unified orchestrator history)
             renderMessages();
 
             // Refocus text entry input
@@ -1247,12 +1318,12 @@
             });
         }
 
-        // Renders message bubbles inside scrollpanel
+        // Renders message bubbles inside scrollpanel (unified orchestrator history)
         function renderMessages() {
             const container = document.getElementById("messagesStream");
             container.innerHTML = "";
             
-            const history = chatHistories[currentAgentKey] || [];
+            const history = chatHistories["orchestrator"] || [];
             
             history.forEach(msg => {
                 const row = document.createElement("div");
@@ -1266,13 +1337,9 @@
                         </div>
                     `;
                 } else {
-                    // Fetch corresponding SVG avatar markup for the sending agent key
-                    const senderKey = msg.agentKey || currentAgentKey;
-                    const avatarSvgMarkup = document.querySelector(`.nav-btn[id="btn-${senderKey}"] .avatar-container`).innerHTML;
-
                     row.innerHTML = `
                         <div class="chat-bubble-avatar">
-                            ${avatarSvgMarkup}
+                            ${orchestratorAvatarSvg}
                         </div>
                         <div class="message-bubble-wrapper">
                             <div class="message-bubble">${msg.text}</div>
@@ -1297,7 +1364,7 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // Send chat message
+        // Send chat message (always routed to the orchestrator agent)
         function sendMessage() {
             const input = document.getElementById("chatInput");
             const text = input.value.trim();
@@ -1307,16 +1374,16 @@
 
             const timestamp = formatTime(new Date());
 
-            // 1. Log user message bubble
+            // 1. Log user message bubble to orchestrator history
             const userMsg = { sender: "user", text, timestamp };
-            chatHistories[currentAgentKey].push(userMsg);
+            chatHistories["orchestrator"].push(userMsg);
             saveChatHistories();
             renderMessages();
 
             // 2. Render Agent Bouncing Wave/Thinking indicator
             showTypingIndicator();
 
-            // 3. Connect to backend API at port 8080
+            // 3. Connect to backend API at port 8080, targeting orchestrator
             fetch("http://localhost:8080/chat", {
                 method: "POST",
                 headers: {
@@ -1324,7 +1391,7 @@
                 },
                 body: JSON.stringify({
                     message: text,
-                    agent_name: currentAgentKey
+                    agent_name: "orchestrator"
                 })
             })
             .then(res => {
@@ -1339,9 +1406,9 @@
                     sender: "agent", 
                     text: data.response, 
                     timestamp: formatTime(new Date()),
-                    agentKey: currentAgentKey 
+                    agentKey: "orchestrator" 
                 };
-                chatHistories[currentAgentKey].push(agentMsg);
+                chatHistories["orchestrator"].push(agentMsg);
                 saveChatHistories();
                 renderMessages();
             })
@@ -1352,9 +1419,9 @@
                     sender: "agent", 
                     text: "⚠️ **System Error:** Failed to connect to the backend agent at `http://localhost:8080`. Please ensure the FastAPI server is running.", 
                     timestamp: formatTime(new Date()),
-                    agentKey: currentAgentKey 
+                    agentKey: "orchestrator" 
                 };
-                chatHistories[currentAgentKey].push(agentMsg);
+                chatHistories["orchestrator"].push(agentMsg);
                 saveChatHistories();
                 renderMessages();
             });
@@ -1366,14 +1433,12 @@
             
             if (document.getElementById("typingIndicatorRow")) return;
 
-            const avatarSvgMarkup = document.querySelector(`.nav-btn[id="btn-${currentAgentKey}"] .avatar-container`).innerHTML;
-
             const row = document.createElement("div");
             row.className = "message-row agent-row";
             row.id = "typingIndicatorRow";
             row.innerHTML = `
                 <div class="chat-bubble-avatar" style="animation: avatar-wave-thinking 1.2s infinite ease-in-out;">
-                    ${avatarSvgMarkup}
+                    ${orchestratorAvatarSvg}
                 </div>
                 <div class="message-bubble-wrapper">
                     <div class="typing-bubble">
@@ -1419,16 +1484,15 @@
             }
         }
 
-        // Clear chat logs
+        // Clear chat logs (unified orchestrator history)
         function clearActiveChat() {
-            const currentAgentName = agentConfigs[currentAgentKey].name;
-            if (confirm(`Do you wish to clear your conversation history with ${currentAgentName}?`)) {
-                chatHistories[currentAgentKey] = [
+            if (confirm("Do you wish to clear your conversation history with LifeOS Orchestrator?")) {
+                chatHistories["orchestrator"] = [
                     {
                         sender: "agent",
-                        text: agentConfigs[currentAgentKey].greeting,
+                        text: orchestratorGreeting,
                         timestamp: formatTime(new Date()),
-                        agentKey: currentAgentKey
+                        agentKey: "orchestrator"
                     }
                 ];
                 saveChatHistories();
