@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Document Metadata -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeOS — Next-Gen AI Assistant</title>
+    
+    <!-- Google Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+
+    <style>
+        /* ==========================================================================
+           COLOR SYSTEM & GLOBAL CONFIG
+           ========================================================================== */
+        :root {
+            --bg-gradient: linear-gradient(135deg, #070919 0%, #0d1233 50%, #151a44 100%);
+            --accent-neon: #4f9eff;      /* Neon Blue Accent */
+            --accent-neon-glow: rgba(79, 158, 255, 0.4);
+            --accent-green: #50fa7b;     /* Pulsing active indicators */
+            --glass-bg: rgba(255, 255, 255, 0.02);
+            --glass-border: rgba(255, 255, 255, 0.07);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            --text-primary: #f0f4f9;     /* Off-white primary text */
+            --text-secondary: #a9b2c3;   /* Muted gray-blue */
+            --text-muted: #6b7790;       /* Muted icon/detail text */
+        }
+
+        /* ==========================================================================
+           BASE STYLES & RESET
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Roboto', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            position: relative;
+            animation: fadeInPage 0.8s ease-out;
+        }
+
+        /* Canvas background overlay for particle animations */
+        #particleCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Root wrapper layout */
+        .app-wrapper {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            z-index: 2; /* Sits above the background canvas */
+        }
+
+        /* ==========================================================================
+           LAYOUT: LEFT SIDEBAR (GLASSMORPHISM)
+           ========================================================================== */
+        .sidebar {
+            width: 280px;
+            background: rgba(10, 14, 38, 0.4);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 28px 16px;
+            z-index: 10;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* LifeOS Header Brand with Gradient Glow */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 0 12px 28px 12px;
+            border-bottom: 1px solid var(--glass-border);
+            margin-bottom: 24px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            filter: drop-shadow(0 0 8px var(--accent-neon-glow));
+        }
+
+        .logo-text {
+            font-family: 'Outfit', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a8c7fa 0%, #4f9eff 50%, #00f2fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: logo-shine 3s ease-in-out infinite alternate;
+        }
+
+        /* Sidebar Nav Container */
+        .nav-links {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            list-style: none;
+            flex-grow: 1;
+        }
+
+        /* Navigation item slide-in load effect */
+        .nav-item {
+            opacity: 0;
+            transform: translateX(-20px);
+            animation: slideInLeft 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            animation-delay: calc(var(--btn-index) * 0.1s);
+        }
+
+        /* Capsule Agent Button Styles */
+        .nav-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 16px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-secondary);
+            text-align: left;
+            cursor: pointer;
+            border-radius: 20px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Glow active border line indicator */
+        .nav-btn::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 15%;
+            height: 70%;
+            width: 3px;
+            background-color: var(--accent-neon);
+            border-radius: 0 4px 4px 0;
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+
+        /* Button Title & Description Wrapper */
+        .nav-btn-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .nav-btn-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            transition: color 0.3s ease;
+        }
+
+        .nav-btn-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* Sidebar Buttons: Hover Actions */
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(79, 158, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            transform: translateY(-2px);
+        }
+
+        .nav-btn:hover .nav-btn-title {
+            color: var(--accent-neon);
+        }
+
+        /* Sidebar Buttons: Active states with Glowing radial overlays */
+        .nav-btn.active {
+            background: rgba(79, 158, 255, 0.08);
+            border-color: rgba(79, 158, 255, 0.5);
+            box-shadow: 0 0 15px rgba(79, 158, 255, 0.15);
+        }
+
+        .nav-btn.active::before {
+            transform: scaleY(1);
+        }
+
+        .nav-btn.active .avatar-container {
+            animation: avatar-bounce 0.8s infinite alternate ease-in-out;
+            border-color: var(--accent-neon);
+            box-shadow: 0 0 10px var(--accent-neon-glow);
+        }
+
+        /* Sidebar Footer */
+        .sidebar-footer {
+            padding: 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: center;
+            border-top: 1px solid var(--glass-border);
+            margin-top: 24px;
+        }
+
+        /* ==========================================================================
+           AVATAR STYLING & CORE SVGs
+           ========================================================================== */
+        .avatar-container {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: rgba(10, 14, 38, 0.7);
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .avatar-svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* Tasks: Clipboard check pulse */
+        .svg-tasks .checkmark {
+            transform-origin: 14px 11px;
+            animation: checklist-pulse 2s infinite ease-in-out;
+        }
+
+        /* Schedule: Clock hands rotating */
+        .svg-schedule .hour-hand {
+            transform-origin: 12px 12px;
+            animation: rotate-hands 15s infinite linear;
+        }
+        .svg-schedule .minute-hand {
+            transform-origin: 12px 12px;
+            animation: rotate-hands 2.5s infinite linear;
+        }
+
+        /* Finance: Coin Flipping 3D */
+        .svg-finance {
+            animation: coin-flip 3.5s infinite linear;
+        }
+
+        /* Health: Heart pulse beating */
+        .svg-health {
+            transform-origin: 12px 12px;
+            animation: heart-beat 1.3s infinite ease-in-out;
+        }
+
+        /* Brief: Sun rays rotating */
+        .svg-brief .sun-rays {
+            transform-origin: 12px 12px;
+            animation: sun-rotate 20s infinite linear;
+        }
+
+        /* ==========================================================================
+           LAYOUT: CHAT WORKSPACE
+           ========================================================================== */
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Top Workspace Header */
+        .chat-header {
+            height: 76px;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            background: rgba(7, 9, 25, 0.4);
+            backdrop-filter: blur(16px);
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+        }
+
+        .menu-toggle:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* Active avatar slot in Header */
+        .header-avatar-slot {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background: rgba(79, 158, 255, 0.05);
+            border: 1px solid rgba(79, 158, 255, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 15px rgba(79, 158, 255, 0.1);
+        }
+
+        .agent-title-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .agent-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 1px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse-glow-green 2s infinite ease-in-out;
+        }
+
+        .status-text {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* Clean Glass Chat Action Button */
+        .clear-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-secondary);
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .clear-btn:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border-color: rgba(79, 158, 255, 0.3);
+            box-shadow: 0 0 10px rgba(79, 158, 255, 0.1);
+        }
+
+        /* ==========================================================================
+           CHAT MESSAGES STREAM
+           ========================================================================== */
+        .messages-stream {
+            flex-grow: 1;
+            padding: 28px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            scroll-behavior: smooth;
+        }
+
+        /* Neon blue custom scrollbar styling */
+        .messages-stream::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages-stream::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .messages-stream::-webkit-scrollbar-thumb {
+            background: rgba(79, 158, 255, 0.15);
+            border-radius: 3px;
+        }
+
+        .messages-stream::-webkit-scrollbar-thumb:hover {
+            background: rgba(79, 158, 255, 0.3);
+        }
+
+        /* Message flex wraps */
+        .message-row {
+            display: flex;
+            width: 100%;
+            animation: slideInUpBubble 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        }
+
+        .message-row.user-row {
+            justify-content: flex-end;
+        }
+
+        .message-row.agent-row {
+            justify-content: flex-start;
+        }
+
+        /* Avatar in chat bubble row */
+        .chat-bubble-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: rgba(79, 158, 255, 0.05);
+            border: 1px solid rgba(79, 158, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 14px;
+            flex-shrink: 0;
+        }
+
+        .chat-bubble-avatar .avatar-svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Glassmorphism Speech Capsules */
+        .message-bubble-wrapper {
+            max-width: 65%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-row .message-bubble-wrapper {
+            align-items: flex-end;
+        }
+
+        .message-bubble {
+            padding: 16px 22px;
+            border-radius: 24px;
+            font-size: 15px;
+            line-height: 1.6;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+            box-shadow: var(--glass-shadow);
+        }
+
+        /* User Message Capsule style (Neon blue gradient overlay) */
+        .user-row .message-bubble {
+            background: linear-gradient(135deg, rgba(79, 158, 255, 0.25) 0%, rgba(0, 74, 119, 0.45) 100%);
+            color: #e2f1ff;
+            border: 1px solid rgba(79, 158, 255, 0.3);
+            border-bottom-right-radius: 4px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        /* Agent Message Capsule style (Dark glass card) */
+        .agent-row .message-bubble {
+            background: rgba(10, 14, 38, 0.55);
+            color: var(--text-primary);
+            border: 1px solid var(--glass-border);
+            border-top-left-radius: 4px;
+            backdrop-filter: blur(12px);
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            padding: 0 6px;
+        }
+
+        /* ==========================================================================
+           TYPING/THINKING INDICATOR
+           ========================================================================== */
+        .typing-bubble {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 18px 24px;
+            background: rgba(10, 14, 38, 0.55);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            border-top-left-radius: 4px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-neon);
+            border-radius: 50%;
+            animation: bounce-dot-neon 1.4s infinite ease-in-out both;
+            box-shadow: 0 0 6px var(--accent-neon-glow);
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        /* ==========================================================================
+           PROMPT CHIPS
+           ========================================================================== */
+        .chips-container {
+            max-width: 800px;
+            margin: 0 auto 12px auto;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            opacity: 0;
+            animation: fadeInPage 0.5s ease-out 0.4s forwards;
+        }
+
+        .prompt-chip {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            padding: 8px 16px;
+            border-radius: 18px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .prompt-chip:hover {
+            background: rgba(79, 158, 255, 0.08);
+            border-color: rgba(79, 158, 255, 0.4);
+            color: var(--accent-neon);
+            transform: scale(1.03);
+            box-shadow: 0 2px 8px rgba(79, 158, 255, 0.1);
+        }
+
+        /* ==========================================================================
+           INPUT SECTION (FLOATING CHAT PILL)
+           ========================================================================== */
+        .input-outer-wrapper {
+            padding: 0 28px 28px 28px;
+            background: transparent;
+        }
+
+        .input-bar-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(10, 14, 38, 0.65);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--glass-border);
+            border-radius: 36px;
+            display: flex;
+            align-items: center;
+            padding: 8px 10px 8px 24px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .input-bar-container:focus-within {
+            border-color: var(--accent-neon);
+            box-shadow: 0 0 20px rgba(79, 158, 255, 0.25);
+        }
+
+        .chat-input {
+            flex-grow: 1;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 16px;
+            outline: none;
+            padding: 10px 0;
+        }
+
+        .chat-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        /* Send circular button with ripple */
+        .send-btn {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            background-color: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--accent-neon);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none;
+            position: relative;
+        }
+
+        .send-btn:hover {
+            background-color: rgba(79, 158, 255, 0.15);
+            border-color: var(--accent-neon);
+            box-shadow: 0 0 10px rgba(79, 158, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+
+        .send-btn .material-symbols-outlined {
+            font-size: 22px;
+        }
+
+        /* Sidebar toggle backdrop overlay for mobile */
+        .drawer-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(5, 7, 18, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 8;
+        }
+
+        /* ==========================================================================
+           ANIMATIONS (KEYFRAMES)
+           ========================================================================== */
+        @keyframes fadeInPage {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInUpBubble {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes logo-shine {
+            from {
+                filter: drop-shadow(0 0 6px rgba(79, 158, 255, 0.2));
+            }
+            to {
+                filter: drop-shadow(0 0 15px rgba(0, 242, 254, 0.5));
+            }
+        }
+
+        @keyframes pulse-glow-green {
+            0%, 100% {
+                opacity: 0.6;
+                box-shadow: 0 0 4px var(--accent-green);
+            }
+            50% {
+                opacity: 1;
+                box-shadow: 0 0 12px var(--accent-green);
+            }
+        }
+
+        @keyframes bounce-dot-neon {
+            0%, 80%, 100% { 
+                transform: scale(0);
+                opacity: 0.3;
+            } 40% { 
+                transform: scale(1.0);
+                opacity: 1;
+            }
+        }
+
+        /* Continuous SVG Avatar Animations */
+        @keyframes checklist-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.18); }
+        }
+
+        @keyframes rotate-hands {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes coin-flip {
+            0% { transform: rotateY(0deg); }
+            50% { transform: rotateY(180deg); }
+            100% { transform: rotateY(360deg); }
+        }
+
+        @keyframes heart-beat {
+            0%, 100% { transform: scale(1); }
+            15% { transform: scale(1.15); }
+            30% { transform: scale(1.05); }
+            45% { transform: scale(1.2); }
+            70% { transform: scale(1); }
+        }
+
+        @keyframes sun-rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Active avatar glow and subtle bounce animation */
+        @keyframes avatar-bounce {
+            from {
+                transform: translateY(0) scale(1);
+            }
+            to {
+                transform: translateY(-4px) scale(1.04);
+            }
+        }
+
+        /* ==========================================================================
+           RESPONSIVE VIEWPORTS
+           ========================================================================== */
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: block; /* Render mobile menu icon */
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                transform: translateX(-100%);
+                box-shadow: 8px 0 32px rgba(0, 0, 0, 0.6);
+                background: rgba(10, 14, 38, 0.95);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .drawer-overlay.visible {
+                display: block;
+            }
+
+            .message-bubble-wrapper {
+                max-width: 82%;
+            }
+            
+            .chips-container {
+                display: none; /* Hide prompt chips on mobile to save vertical height */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Stars/Particles Canvas Background -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- Overlay backdrop for Mobile Sidebars -->
+    <div class="drawer-overlay" id="drawerOverlay" onclick="toggleSidebar(false)"></div>
+
+    <div class="app-wrapper">
+        <!-- LEFT SIDEBAR (GLASSMORPHISM) -->
+        <aside class="sidebar" id="sidebar">
+            <!-- Brand Logo with Shiny Animation -->
+            <div class="logo-container">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 17C9.24 17 7 14.76 7 12C7 9.24 9.24 7 12 7C14.76 7 17 9.24 17 12C17 14.76 14.76 17 12 17Z" fill="url(#grad1)"/>
+                    <path d="M12 5C8.13 5 5 8.13 5 12C5 15.87 8.13 19 12 19C15.87 19 19 15.87 19 12" fill="none" stroke="url(#grad2)" stroke-width="2" stroke-linecap="round"/>
+                    <defs>
+                        <linearGradient id="grad1" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#4f9eff"/>
+                            <stop offset="50%" stop-color="#00f2fe"/>
+                            <stop offset="100%" stop-color="#50fa7b"/>
+                        </linearGradient>
+                        <linearGradient id="grad2" x1="19" y1="12" x2="5" y2="12" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#4f9eff"/>
+                            <stop offset="100%" stop-color="#a8c7fa"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <h1 class="logo-text">LifeOS</h1>
+            </div>
+
+            <!-- Agent navigation buttons -->
+            <nav style="display: contents;">
+                <ul class="nav-links">
+                    <!-- Tasks Agent -->
+                    <li class="nav-item" style="--btn-index: 1;">
+                        <button class="nav-btn active" id="btn-tasks" onclick="switchAgent('tasks')">
+                            <div class="avatar-container">
+                                <svg viewBox="0 0 24 24" class="avatar-svg svg-tasks">
+                                    <rect x="5" y="4" width="14" height="16" rx="2" stroke="#4f9eff" stroke-width="1.5" fill="none" />
+                                    <path d="M9 5h6" stroke="#4f9eff" stroke-width="1.5" stroke-linecap="round" />
+                                    <line x1="8" y1="10" x2="12" y2="10" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" />
+                                    <line x1="8" y1="14" x2="11" y2="14" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" />
+                                    <path class="checkmark" d="M13 11l2 2 4-4" stroke="#50fa7b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                                </svg>
+                            </div>
+                            <div class="nav-btn-info">
+                                <span class="nav-btn-title">Tasks</span>
+                                <span class="nav-btn-desc">Manage to-dos & lists</span>
+                            </div>
+                        </button>
+                    </li>
+
+                    <!-- Schedule Agent -->
+                    <li class="nav-item" style="--btn-index: 2;">
+                        <button class="nav-btn" id="btn-schedule" onclick="switchAgent('schedule')">
+                            <div class="avatar-container">
+                                <svg viewBox="0 0 24 24" class="avatar-svg svg-schedule">
+                                    <circle cx="12" cy="12" r="9" stroke="#4f9eff" stroke-width="1.5" fill="none" />
+                                    <line class="hour-hand" x1="12" y1="12" x2="12" y2="8" stroke="#4f9eff" stroke-width="2" stroke-linecap="round" />
+                                    <line class="minute-hand" x1="12" y1="12" x2="15" y2="12" stroke="#00f2fe" stroke-width="1.5" stroke-linecap="round" />
+                                </svg>
+                            </div>
+                            <div class="nav-btn-info">
+                                <span class="nav-btn-title">Schedule</span>
+                                <span class="nav-btn-desc">Meetings & reminders</span>
+                            </div>
+                        </button>
+                    </li>
+
+                    <!-- Finance Agent -->
+                    <li class="nav-item" style="--btn-index: 3;">
+                        <button class="nav-btn" id="btn-finance" onclick="switchAgent('finance')">
+                            <div class="avatar-container">
+                                <svg viewBox="0 0 24 24" class="avatar-svg svg-finance">
+                                    <circle cx="12" cy="12" r="8" stroke="#f1fa8c" stroke-width="1.5" fill="none" />
+                                    <text x="12" y="16" fill="#f1fa8c" font-size="12" font-family="'Outfit', sans-serif" font-weight="bold" text-anchor="middle">₹</text>
+                                </svg>
+                            </div>
+                            <div class="nav-btn-info">
+                                <span class="nav-btn-title">Finance</span>
+                                <span class="nav-btn-desc">Log expenses & budgets</span>
+                            </div>
+                        </button>
+                    </li>
+
+                    <!-- Health Agent -->
+                    <li class="nav-item" style="--btn-index: 4;">
+                        <button class="nav-btn" id="btn-health" onclick="switchAgent('health')">
+                            <div class="avatar-container">
+                                <svg viewBox="0 0 24 24" class="avatar-svg svg-health">
+                                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="#ff5555" />
+                                </svg>
+                            </div>
+                            <div class="nav-btn-info">
+                                <span class="nav-btn-title">Health</span>
+                                <span class="nav-btn-desc">Track meals & workouts</span>
+                            </div>
+                        </button>
+                    </li>
+
+                    <!-- Morning Brief Agent -->
+                    <li class="nav-item" style="--btn-index: 5;">
+                        <button class="nav-btn" id="btn-brief" onclick="switchAgent('brief')">
+                            <div class="avatar-container">
+                                <svg viewBox="0 0 24 24" class="avatar-svg svg-brief">
+                                    <circle cx="12" cy="12" r="5" fill="#ffb86c" />
+                                    <g class="sun-rays" stroke="#ffb86c" stroke-width="1.5" stroke-linecap="round">
+                                        <line x1="12" y1="2" x2="12" y2="5" />
+                                        <line x1="12" y1="19" x2="12" y2="22" />
+                                        <line x1="2" y1="12" x2="5" y2="12" />
+                                        <line x1="19" y1="12" x2="22" y2="12" />
+                                        <line x1="5" y1="5" x2="7.1" y2="7.1" />
+                                        <line x1="16.9" y1="16.9" x2="19" y2="19" />
+                                        <line x1="5" y1="19" x2="7.1" y2="16.9" />
+                                        <line x1="16.9" y1="7.1" x2="19" y2="5" />
+                                    </g>
+                                </svg>
+                            </div>
+                            <div class="nav-btn-info">
+                                <span class="nav-btn-title">Morning Brief</span>
+                                <span class="nav-btn-desc">Summarize your day</span>
+                            </div>
+                        </button>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Sidebar bottom credits footer -->
+            <div class="sidebar-footer">
+                <p>LifeOS Personal Assistant v2.0</p>
+            </div>
+        </aside>
+
+        <!-- RIGHT WORKSPACE PANEL -->
+        <main class="chat-container">
+            <!-- Top Sticky Glassmorphic Header -->
+            <header class="chat-header">
+                <div class="header-left">
+                    <!-- Drawer toggle menu button for mobile screens -->
+                    <button class="menu-toggle" onclick="toggleSidebar(true)">
+                        <span class="material-symbols-outlined">menu</span>
+                    </button>
+                    
+                    <!-- Avatar slot displaying the current active agent's avatar -->
+                    <div class="header-avatar-slot" id="headerAvatar">
+                        <!-- Cloned SVG avatar loads here -->
+                    </div>
+
+                    <div class="agent-title-container">
+                        <h2 class="agent-title" id="activeAgentTitle">Tasks Agent</h2>
+                        <div class="status-container">
+                            <span class="status-dot"></span>
+                            <span class="status-text">Agent active</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Clear chat button -->
+                <button class="clear-btn" onclick="clearActiveChat()">
+                    <span class="material-symbols-outlined">delete</span>
+                    <span>Clear chat</span>
+                </button>
+            </header>
+
+            <!-- Main scrollable messages area -->
+            <section class="messages-stream" id="messagesStream">
+                <!-- Message row bubbles injected here dynamically -->
+            </section>
+
+            <!-- Input area containing floating input box and prompt chips -->
+            <footer class="input-outer-wrapper">
+                <!-- Example Prompt Chips (Click to run) -->
+                <div class="chips-container" id="chipsContainer">
+                    <!-- Rendered dynamically depending on the selected agent -->
+                </div>
+
+                <!-- Floating Chat Pill Container -->
+                <div class="input-bar-container">
+                    <input 
+                        type="text" 
+                        id="chatInput" 
+                        class="chat-input" 
+                        placeholder="Ask Tasks Agent..." 
+                        onkeydown="handleKeyDown(event)"
+                        autocomplete="off"
+                    >
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                        <span class="material-symbols-outlined">send</span>
+                    </button>
+                </div>
+            </footer>
+        </main>
+    </div>
+
+    <!-- ==========================================================================
+         APPLICATION LOGIC & CORE SCRIPT
+         ========================================================================== -->
+    <script>
+        // Agent configurations containing custom prompt chips, greetings, and mock replies
+        const agentConfigs = {
+            tasks: {
+                name: "Tasks Agent",
+                placeholder: "Ask Tasks Agent (e.g., 'add buy milk to my tasks')...",
+                greeting: "Hello! I am your Tasks Agent. I can help you organize and check off your daily tasks. What would you like to achieve today?",
+                chips: [
+                    "show my tasks",
+                    "add buy milk to my tasks",
+                    "complete buy groceries"
+                ],
+                defaultMockResponses: [
+                    { pattern: /add\s+(.+)\s+to\s+my\s+tasks/i, reply: "Done! Added \"{match1}\" to your tasks ✅" },
+                    { pattern: /show\s+my\s+tasks|list\s+tasks/i, reply: "📋 **Here are your pending tasks:**\n\n1. Buy groceries (normal priority)\n2. Complete Capstone Project frontend (high priority)\n3. Check water plants (low priority)" },
+                    { pattern: /complete\s+(.+)/i, reply: "Marked \"{match1}\" as complete ✅" },
+                    { pattern: /.*/i, reply: "I can help manage your list. Try saying 'add workout to my tasks' or 'show my tasks'." }
+                ]
+            },
+            schedule: {
+                name: "Schedule Agent",
+                placeholder: "Ask Schedule Agent (e.g., 'what is my schedule today')...",
+                greeting: "Welcome back! I am your Schedule Agent. Let's optimize your day. Let me know if you need to set meetings or check your agenda.",
+                chips: [
+                    "what is my schedule today",
+                    "schedule sync tomorrow at 3pm",
+                    "schedule standup"
+                ],
+                defaultMockResponses: [
+                    { pattern: /schedule\s+(.+)\s+on\s+(.+)\s+at\s+(.+)/i, reply: "Scheduled \"{match1}\" on {match2} at {match3} ✅" },
+                    { pattern: /schedule\s+(.+)\s+tomorrow\s+at\s+(.+)/i, reply: "Scheduled \"{match1}\" tomorrow at {match2} ✅" },
+                    { pattern: /schedule\s+(.+)/i, reply: "Scheduled \"{match1}\" on your calendar ✅" },
+                    { pattern: /what\s+is\s+my\s+schedule|show\s+schedule|my\s+schedule/i, reply: "📅 **Here is your schedule for today:**\n\n- 10:00 AM: Team Sync & Standup\n- 01:00 PM: Client review call\n- 04:30 PM: Gym session" },
+                    { pattern: /.*/i, reply: "I can schedule calendar events. Try saying 'schedule standup tomorrow at 9am' or 'what is my schedule today'." }
+                ]
+            },
+            finance: {
+                name: "Finance Agent",
+                placeholder: "Ask Finance Agent (e.g., 'log ₹200 for lunch')...",
+                greeting: "Hello! I am your Finance Agent. I'll help you log payments, manage budgets, and keep track of your daily expenses.",
+                chips: [
+                    "show my expenses today",
+                    "log ₹200 for lunch",
+                    "clear expenses"
+                ],
+                defaultMockResponses: [
+                    { pattern: /log\s+(.+)\s+for\s+(.+)/i, reply: "Logged {match1} for {match2}. Updated daily total: {match1} ✅" },
+                    { pattern: /show\s+my\s+expenses|show\s+expenses|expenses\s+today/i, reply: "💰 **Today's itemized expenses:**\n\n- Coffee: ₹150\n- Lunch: ₹350\n- Taxi ride: ₹200\n\n**Total logged today: ₹700**" },
+                    { pattern: /clear\s+all\s+expenses|clear\s+expenses/i, reply: "Are you sure? Type YES to confirm clearing all today's expenses." },
+                    { pattern: /^yes$/i, reply: "Cleared all expenses for today. Budget refreshed! 💰" },
+                    { pattern: /.*/i, reply: "I can help track budgets and log spending. Try saying 'log ₹200 for lunch' or 'show my expenses today'." }
+                ]
+            },
+            health: {
+                name: "Health Agent",
+                placeholder: "Ask Health Agent (e.g., 'show health summary')...",
+                greeting: "Hello! Health Agent online. Log your food intake, register your workouts, or review your daily calorie count here.",
+                chips: [
+                    "show health summary",
+                    "log salad",
+                    "log 30 min walk"
+                ],
+                defaultMockResponses: [
+                    { pattern: /log\s+(.+)\s+workout|log\s+(\d+\s+min\s+\w+)/i, reply: "Logged workout: {match1} ✅" },
+                    { pattern: /log\s+(.+)/i, reply: "Logged meal/activity: \"{match1}\" ✅" },
+                    { pattern: /show\s+health\s+summary|health\s+summary|show\s+health/i, reply: "🥗 **Today's Health & Wellness Summary:**\n\n**Meals Logged**:\n- Breakfast: Oatmeal with bananas\n- Lunch: Grilled chicken salad\n\n**Workouts Logged**:\n- 30 min run (morning)\n- Active Calories: 420 kcal" },
+                    { pattern: /.*/i, reply: "I can track meals and workouts. Try: 'log salad' or 'log 45 min yoga'." }
+                ]
+            },
+            brief: {
+                name: "Morning Brief",
+                placeholder: "Ask Morning Brief Agent (e.g., 'give me my morning brief')...",
+                greeting: "Good morning! Briefing Agent online. Say 'give me my morning brief' to compile a report across all active panels.",
+                chips: [
+                    "give me my morning brief",
+                    "show summary"
+                ],
+                defaultMockResponses: [
+                    { pattern: /brief|summary|morning\s+brief/i, reply: "☀️ **Good morning! Here is your daily Briefing:**\n\n📋 **Pending Tasks**:\n- Complete slide deck (high priority)\n- Buy groceries\n\n📅 **Today's Schedule**:\n- 10:00 AM: Team Sync & Standup\n- 01:00 PM: Client review call\n\n💰 **Finance & Budget**:\n- Today's expenses: ₹0 logged so far.\n\n🥗 **Health & Wellness**:\n- No meals or workouts logged yet today.\n\nLet me know if you want me to write down any new tasks or change anything!" },
+                    { pattern: /.*/i, reply: "I can compile a comprehensive daily report of your schedule, tasks, budget, and health. Simply say 'give me my morning brief'." }
+                ]
+            }
+        };
+
+        // App States
+        let currentAgentKey = "tasks";
+        let chatHistories = {};
+
+        // On document load
+        window.addEventListener("DOMContentLoaded", () => {
+            initCanvasParticles();
+            loadChatHistories();
+            switchAgent("tasks");
+        });
+
+        // Initialize Background Particle Animation Canvas
+        function initCanvasParticles() {
+            const canvas = document.getElementById('particleCanvas');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+
+            function resizeCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            // Star/particle generation parameters
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 1.5 + 0.5;
+                    this.speedX = Math.random() * 0.15 - 0.075;
+                    this.speedY = Math.random() * 0.15 - 0.075;
+                    this.alpha = Math.random() * 0.4 + 0.2;
+                }
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                    if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+                }
+                draw() {
+                    ctx.save();
+                    ctx.globalAlpha = this.alpha;
+                    ctx.fillStyle = '#4f9eff';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+
+            // Populate particle array
+            for (let i = 0; i < 50; i++) {
+                particles.push(new Particle());
+            }
+
+            // Background canvas render loop
+            function animateParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.update();
+                    p.draw();
+                });
+                requestAnimationFrame(animateParticles);
+            }
+            animateParticles();
+        }
+
+        // Load chat histories from LocalStorage
+        function loadChatHistories() {
+            const saved = localStorage.getItem("lifeos_chat_histories_v2");
+            if (saved) {
+                try {
+                    chatHistories = JSON.parse(saved);
+                } catch (e) {
+                    console.error("Failed to parse chat histories:", e);
+                    chatHistories = {};
+                }
+            }
+
+            // Initialize greeting message for any empty histories
+            Object.keys(agentConfigs).forEach(key => {
+                if (!chatHistories[key] || chatHistories[key].length === 0) {
+                    chatHistories[key] = [
+                        {
+                            sender: "agent",
+                            text: agentConfigs[key].greeting,
+                            timestamp: formatTime(new Date()),
+                            agentKey: key
+                        }
+                    ];
+                }
+            });
+            saveChatHistories();
+        }
+
+        function saveChatHistories() {
+            localStorage.setItem("lifeos_chat_histories_v2", JSON.stringify(chatHistories));
+        }
+
+        function formatTime(date) {
+            let hours = date.getHours();
+            let minutes = date.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            return `${hours}:${minutes} ${ampm}`;
+        }
+
+        // Mobile sidebar navigation helper
+        function toggleSidebar(open) {
+            const sidebar = document.getElementById("sidebar");
+            const overlay = document.getElementById("drawerOverlay");
+            if (open) {
+                sidebar.classList.add("open");
+                overlay.classList.add("visible");
+            } else {
+                sidebar.classList.remove("open");
+                overlay.classList.remove("visible");
+            }
+        }
+
+        // Switch active agent specialist
+        function switchAgent(agentKey) {
+            currentAgentKey = agentKey;
+            const config = agentConfigs[agentKey];
+
+            // Update header name and input placeholder
+            document.getElementById("activeAgentTitle").innerText = config.name;
+            document.getElementById("chatInput").placeholder = config.placeholder;
+
+            // Clone sidebar button's SVG avatar and place it into the header slot
+            const activeSvgHtml = document.querySelector(`.nav-btn[id="btn-${agentKey}"] .avatar-container`).innerHTML;
+            document.getElementById("headerAvatar").innerHTML = activeSvgHtml;
+
+            // Highlight selected button in the sidebar nav
+            const buttons = document.querySelectorAll(".nav-btn");
+            buttons.forEach(btn => btn.classList.remove("active"));
+            
+            let targetBtnId = "btn-tasks";
+            if (agentKey === "schedule") targetBtnId = "btn-schedule";
+            if (agentKey === "finance") targetBtnId = "btn-finance";
+            if (agentKey === "health") targetBtnId = "btn-health";
+            if (agentKey === "brief") targetBtnId = "btn-brief";
+            
+            document.getElementById(targetBtnId).classList.add("active");
+
+            // Close mobile menu drawer
+            toggleSidebar(false);
+
+            // Redraw prompt chips below input
+            renderPromptChips(config.chips);
+
+            // Redraw active agent history in chat logs panel
+            renderMessages();
+
+            // Refocus text entry input
+            document.getElementById("chatInput").focus();
+        }
+
+        // Renders example prompt chips
+        function renderPromptChips(chips) {
+            const container = document.getElementById("chipsContainer");
+            container.innerHTML = "";
+            
+            chips.forEach(chipText => {
+                const chip = document.createElement("button");
+                chip.className = "prompt-chip";
+                chip.innerText = chipText;
+                chip.onclick = () => {
+                    // Populate text box and send immediately for seamless flow
+                    document.getElementById("chatInput").value = chipText;
+                    sendMessage();
+                };
+                container.appendChild(chip);
+            });
+        }
+
+        // Renders message bubbles inside scrollpanel
+        function renderMessages() {
+            const container = document.getElementById("messagesStream");
+            container.innerHTML = "";
+            
+            const history = chatHistories[currentAgentKey] || [];
+            
+            history.forEach(msg => {
+                const row = document.createElement("div");
+                row.className = `message-row ${msg.sender}-row`;
+                
+                if (msg.sender === "user") {
+                    row.innerHTML = `
+                        <div class="message-bubble-wrapper">
+                            <div class="message-bubble">${escapeHTML(msg.text)}</div>
+                            <span class="message-time">${msg.timestamp}</span>
+                        </div>
+                    `;
+                } else {
+                    // Fetch corresponding SVG avatar markup for the sending agent key
+                    const senderKey = msg.agentKey || currentAgentKey;
+                    const avatarSvgMarkup = document.querySelector(`.nav-btn[id="btn-${senderKey}"] .avatar-container`).innerHTML;
+
+                    row.innerHTML = `
+                        <div class="chat-bubble-avatar">
+                            ${avatarSvgMarkup}
+                        </div>
+                        <div class="message-bubble-wrapper">
+                            <div class="message-bubble">${msg.text}</div>
+                            <span class="message-time">${msg.timestamp}</span>
+                        </div>
+                    `;
+                }
+                container.appendChild(row);
+            });
+            
+            scrollToBottom();
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById("messagesStream");
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Send chat message
+        function sendMessage() {
+            const input = document.getElementById("chatInput");
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = "";
+
+            const timestamp = formatTime(new Date());
+
+            // 1. Log user message bubble
+            const userMsg = { sender: "user", text, timestamp };
+            chatHistories[currentAgentKey].push(userMsg);
+            saveChatHistories();
+            renderMessages();
+
+            // 2. Render Agent Bouncing Wave/Thinking indicator
+            showTypingIndicator();
+
+            // 3. Connect to backend API at port 8080
+            fetch("http://localhost:8080/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: text,
+                    agent_name: currentAgentKey
+                })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error("HTTP error " + res.status);
+                }
+                return res.json();
+            })
+            .then(data => {
+                hideTypingIndicator();
+                const agentMsg = { 
+                    sender: "agent", 
+                    text: data.response, 
+                    timestamp: formatTime(new Date()),
+                    agentKey: currentAgentKey 
+                };
+                chatHistories[currentAgentKey].push(agentMsg);
+                saveChatHistories();
+                renderMessages();
+            })
+            .catch(err => {
+                console.error(err);
+                hideTypingIndicator();
+                const agentMsg = { 
+                    sender: "agent", 
+                    text: "⚠️ **System Error:** Failed to connect to the backend agent at `http://localhost:8080`. Please ensure the FastAPI server is running.", 
+                    timestamp: formatTime(new Date()),
+                    agentKey: currentAgentKey 
+                };
+                chatHistories[currentAgentKey].push(agentMsg);
+                saveChatHistories();
+                renderMessages();
+            });
+        }
+
+        // Show typing bounce bubbles
+        function showTypingIndicator() {
+            const container = document.getElementById("messagesStream");
+            
+            if (document.getElementById("typingIndicatorRow")) return;
+
+            const avatarSvgMarkup = document.querySelector(`.nav-btn[id="btn-${currentAgentKey}"] .avatar-container`).innerHTML;
+
+            const row = document.createElement("div");
+            row.className = "message-row agent-row";
+            row.id = "typingIndicatorRow";
+            row.innerHTML = `
+                <div class="chat-bubble-avatar" style="animation: avatar-wave-thinking 1.2s infinite ease-in-out;">
+                    ${avatarSvgMarkup}
+                </div>
+                <div class="message-bubble-wrapper">
+                    <div class="typing-bubble">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(row);
+            scrollToBottom();
+        }
+
+        // Remove typing indicator bubble
+        function hideTypingIndicator() {
+            const row = document.getElementById("typingIndicatorRow");
+            if (row) {
+                row.remove();
+            }
+        }
+
+        // Generate response based on regex matches
+        function generateMockResponse(userInput) {
+            const config = agentConfigs[currentAgentKey];
+            const rules = config.defaultMockResponses;
+
+            for (let rule of rules) {
+                const match = userInput.match(rule.pattern);
+                if (match) {
+                    let text = rule.reply;
+                    if (match[1]) text = text.replace("{match1}", match[1].trim());
+                    if (match[2]) text = text.replace("{match2}", match[2].trim());
+                    if (match[3]) text = text.replace("{match3}", match[3].trim());
+                    return text;
+                }
+            }
+            return "I have logged your request in my system. What else can I help you with?";
+        }
+
+        function handleKeyDown(event) {
+            if (event.key === "Enter") {
+                sendMessage();
+            }
+        }
+
+        // Clear chat logs
+        function clearActiveChat() {
+            const currentAgentName = agentConfigs[currentAgentKey].name;
+            if (confirm(`Do you wish to clear your conversation history with ${currentAgentName}?`)) {
+                chatHistories[currentAgentKey] = [
+                    {
+                        sender: "agent",
+                        text: agentConfigs[currentAgentKey].greeting,
+                        timestamp: formatTime(new Date()),
+                        agentKey: currentAgentKey
+                    }
+                ];
+                saveChatHistories();
+                renderMessages();
+            }
+        }
+    </script>
+</body>
+</html>
