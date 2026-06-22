@@ -20,6 +20,7 @@ filesystem_toolset = McpToolset(
 # Create the Finance Agent using MCP Toolset
 finance_agent = Agent(
     name="finance_agent",
+    model="gemini-2.0-flash",
     description="Agent for managing personal finances, tracking expenses, and budgeting through MCP filesystem storage.",
     instruction="""
     You are the Finance Agent for LifeOS. Your primary responsibility is to manage the user's finances and budget.

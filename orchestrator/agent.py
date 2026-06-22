@@ -15,25 +15,13 @@ from task_agent.agent import task_agent
 from schedule_agent.agent import schedule_agent
 from finance_agent.agent import finance_agent
 
-# Placeholder sub-agents for health, and notify to be fully implemented later.
-# This prevents import/run errors while satisfying delegation requirements.
-
-health_agent = Agent(
-    name="health_agent",
-    description="Specialist agent for managing health, meals, workouts, and fitness.",
-    instruction="Handle health-related requests (meals, workouts, fitness). Confirm you are health_agent."
-)
-
-notify_agent = Agent(
-    name="notify_agent",
-    description="Specialist agent for providing daily briefs or summaries.",
-    instruction="Provide a combined daily brief or summary by gathering information. Confirm you are notify_agent."
-)
+from health_agent.agent import health_agent
+from notify_agent.agent import notify_agent
 
 # Master Orchestrator — delegates to sub-agents based on user input
 root_agent = Agent(
     name="lifeos_orchestrator",
-    model="gemini-2.5-flash",
+    model="gemini-2.0-flash",
     description="""
     You are LifeOS — an intelligent personal life manager.
     You listen to the user and delegate to the correct specialist agent.
