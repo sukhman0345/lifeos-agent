@@ -58,7 +58,7 @@ from notify_agent.agent import notify_agent
 # Master Orchestrator — delegates to sub-agents based on user input
 root_agent = Agent(
     name="lifeos_orchestrator",
-    model="gemini-2.0-flash",
+    model="gemini-1.5-flash",
     description="""
     You are LifeOS — an intelligent personal life manager.
     You listen to the user and delegate to the correct specialist agent.

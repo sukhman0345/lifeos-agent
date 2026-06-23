@@ -176,7 +176,7 @@ def daily_brief() -> str:
 # Create the Notify Agent
 notify_agent = Agent(
     name="notify_agent",
-    model="gemini-2.0-flash",
+    model="gemini-1.5-flash",
     description="Agent for providing daily briefs and combining status reports from other agents.",
     instruction="""
     You are the Notify Agent for LifeOS. Your primary responsibility is to provide consolidated summaries and daily briefs.

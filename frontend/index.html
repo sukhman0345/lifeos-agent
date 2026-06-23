@@ -2034,7 +2034,7 @@
                         }
                         
                         // Call Gemini API directly
-                        const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                        const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
                         const prompt = `Based on the following SKILL.md document, write a short, high-tech, welcoming description and greeting with emojis from the perspective of this agent explaining their role, capabilities, and how they can help the user. Keep it under 2-3 sentences and sound like a helpful, friendly AI specialist:\n\n${skillContent}`;
                         
                         return fetch(apiURL, {

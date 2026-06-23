@@ -189,7 +189,7 @@ def get_health_data() -> str:
 # Create the Health Agent
 health_agent = Agent(
     name="health_agent",
-    model="gemini-2.0-flash",
+    model="gemini-1.5-flash",
     description="Agent for tracking health parameters, logging meals/calories and workouts/durations.",
     instruction="""
     You are the Health Agent for LifeOS. Your primary responsibility is to manage the user's health logs.

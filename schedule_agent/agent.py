@@ -79,7 +79,7 @@ filesystem_toolset = McpToolset(
 # Create the Schedule Agent using MCP Toolsets
 schedule_agent = Agent(
     name="schedule_agent",
-    model="gemini-2.0-flash",
+    model="gemini-1.5-flash",
     description=(
         "Agent for managing personal schedule. Uses Google Calendar MCP server to manage real events, "
         "and filesystem MCP server to maintain a local backup in schedule.json."

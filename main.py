@@ -154,6 +154,20 @@ async def chat(request: ChatRequest):
             detail=f"Agent '{request.agent_name}' not found. Available options: {list(AGENT_MAPPING.keys())}"
         )
     
+    friendly_names = {
+        "orchestrator": "Orchestrator",
+        "tasks": "Task Agent",
+        "task_agent": "Task Agent",
+        "schedule": "Schedule Agent",
+        "schedule_agent": "Schedule Agent",
+        "finance": "Finance Agent",
+        "finance_agent": "Finance Agent",
+        "health": "Health Agent",
+        "health_agent": "Health Agent",
+        "brief": "Briefing Agent",
+        "notify_agent": "Briefing Agent"
+    }
+    
     # Define session variables (isolating sessions by agent)
     user_id = "default_user"
     session_id = f"session_{agent_key}"
@@ -176,12 +190,20 @@ async def chat(request: ChatRequest):
         content = types.Content(parts=[types.Part.from_text(text=request.message)])
         
         # Run agent asynchronously
-        async for event in runner.run_async(
-            user_id=user_id,
-            session_id=session_id,
-            new_message=content
-        ):
-            pass
+        try:
+            async for event in runner.run_async(
+                user_id=user_id,
+                session_id=session_id,
+                new_message=content
+            ):
+                pass
+        except Exception as e:
+            import traceback
+            print("ERROR: Agent runner run_async failed:")
+            traceback.print_exc()
+            tb_str = traceback.format_exc()
+            detailed_error = f"⚠️ **Agent Runner Execution Error:** {str(e)}\n\n```\n{tb_str}\n```"
+            return {"response": detailed_error, "handled_by": friendly_names.get(agent_key, "Orchestrator")}
             
         # Retrieve updated session containing final response
         updated_session = await session_service.get_session(app_name=app_name, user_id=user_id, session_id=session_id)
@@ -200,21 +222,6 @@ async def chat(request: ChatRequest):
         if not response_text:
             response_text = "I completed the action but did not yield a written response."
             
-        # Resolve which agent handled the request
-        friendly_names = {
-            "orchestrator": "Orchestrator",
-            "tasks": "Task Agent",
-            "task_agent": "Task Agent",
-            "schedule": "Schedule Agent",
-            "schedule_agent": "Schedule Agent",
-            "finance": "Finance Agent",
-            "finance_agent": "Finance Agent",
-            "health": "Health Agent",
-            "health_agent": "Health Agent",
-            "brief": "Briefing Agent",
-            "notify_agent": "Briefing Agent"
-        }
-        
         handled_by = "Orchestrator"
         if agent_key != "orchestrator" and agent_key in AGENT_MAPPING:
             handled_by = friendly_names.get(agent_key, "Orchestrator")
@@ -253,8 +260,11 @@ async def chat(request: ChatRequest):
     except Exception as e:
         # Log stacktrace for server-side debugging
         import traceback
+        print("ERROR: Chat endpoint session or general setup failed:")
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Internal agent execution error: {str(e)}")
+        tb_str = traceback.format_exc()
+        detailed_error = f"⚠️ **System Setup Error:** {str(e)}\n\n```\n{tb_str}\n```"
+        return {"response": detailed_error, "handled_by": friendly_names.get(agent_key, "Orchestrator")}
 
 if __name__ == "__main__":
     import uvicorn
