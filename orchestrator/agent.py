@@ -45,6 +45,7 @@ verify_local_data_isolation(AGENT_DIR)
 # Ensure the root project directory is in the python path for module imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from fallback_model import FallbackGemini
 from security.telemetry import make_before_callback, make_after_callback
 
 # Import task_agent
@@ -58,7 +59,7 @@ from notify_agent.agent import notify_agent
 # Master Orchestrator — delegates to sub-agents based on user input
 root_agent = Agent(
     name="lifeos_orchestrator",
-    model="gemini-1.5-flash",
+    model=FallbackGemini(),
     description="""
     You are LifeOS — an intelligent personal life manager.
     You listen to the user and delegate to the correct specialist agent.
@@ -85,6 +86,7 @@ root_agent = Agent(
 
 # Session and Runner setup
 session_service = InMemorySessionService()
+print("[LifeOS] Orchestrator using model: gemini-2.5-flash")
 runner = Runner(
     agent=root_agent,
     app_name="lifeos",

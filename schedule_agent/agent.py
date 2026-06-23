@@ -47,6 +47,7 @@ verify_local_data_isolation(AGENT_DIR)
 
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from fallback_model import FallbackGemini
 from security.telemetry import make_before_callback, make_after_callback
 
 # mcp_servers configuration as requested by user
@@ -79,7 +80,7 @@ filesystem_toolset = McpToolset(
 # Create the Schedule Agent using MCP Toolsets
 schedule_agent = Agent(
     name="schedule_agent",
-    model="gemini-1.5-flash",
+    model=FallbackGemini(),
     description=(
         "Agent for managing personal schedule. Uses Google Calendar MCP server to manage real events, "
         "and filesystem MCP server to maintain a local backup in schedule.json."

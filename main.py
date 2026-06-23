@@ -1,5 +1,7 @@
 import os
 import sys
+import time
+import asyncio
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -127,6 +129,161 @@ async def get_skill(agent_key: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to read SKILL.md: {str(e)}")
 
+@app.get("/agent-info/{agent_name}")
+async def get_agent_info(agent_name: str):
+    """
+    GET /agent-info/{agent_name}
+    Reads the agent's SKILL.md file and returns structured JSON details.
+    """
+    import re
+    agent_name = agent_name.lower().strip()
+    
+    # Map friendly names to folder names
+    folder_mapping = {
+        "tasks": "task_agent",
+        "task_agent": "task_agent",
+        "schedule": "schedule_agent",
+        "schedule_agent": "schedule_agent",
+        "finance": "finance_agent",
+        "finance_agent": "finance_agent",
+        "health": "health_agent",
+        "health_agent": "health_agent",
+        "brief": "notify_agent",
+        "notify_agent": "notify_agent",
+    }
+    
+    folder = folder_mapping.get(agent_name)
+    if not folder:
+        raise HTTPException(status_code=400, detail=f"Invalid agent name: {agent_name}")
+        
+    skill_file_path = os.path.join(ROOT_DIR, folder, "SKILL.md")
+    if not os.path.exists(skill_file_path):
+        raise HTTPException(status_code=404, detail=f"SKILL.md not found for agent: {agent_name}")
+        
+    try:
+        with open(skill_file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+            
+        # Split content into sections based on level-2 headers only (starts with ## )
+        lines = content.split("\n")
+        sections = []
+        current_section = {"title": "Root", "lines": []}
+        
+        for line in lines:
+            match = re.match(r'^(##)\s+(.*)', line)
+            if match:
+                sections.append(current_section)
+                current_section = {"title": match.group(2).strip(), "lines": []}
+            else:
+                current_section["lines"].append(line)
+        sections.append(current_section)
+        
+        who_i_am = ""
+        what_i_do = []
+        my_tools = []
+        mcp_servers = []
+        security_features = []
+        
+        # Extract who_i_am from the Root/First H1 section
+        first_h1_found = False
+        who_i_am_lines = []
+        for l in lines:
+            if l.strip().startswith("# "):
+                first_h1_found = True
+                continue
+            if first_h1_found:
+                if l.strip().startswith("##"):
+                    break
+                cleaned = l.strip()
+                if cleaned:
+                    if not cleaned.startswith("---"):
+                        who_i_am_lines.append(cleaned)
+                elif who_i_am_lines:
+                    break
+        who_i_am = " ".join(who_i_am_lines)
+        
+        # Parse mcp_servers
+        content_lower = content.lower()
+        if "filesystem mcp" in content_lower:
+            mcp_servers.append("Filesystem MCP Server")
+        if "google calendar mcp" in content_lower:
+            mcp_servers.append("Google Calendar MCP Server")
+            
+        # Parse tools, what_i_do, security_features section by section
+        for section in sections:
+            title = section["title"].lower()
+            sec_lines = section["lines"]
+            
+            # If it is an MCP tools section
+            if "mcp" in title and "tools" in title:
+                tool_pattern = re.compile(r'^\s*[-\*]\s+`([^`]+)`')
+                for l in sec_lines:
+                    l_str = l.strip()
+                    m = tool_pattern.match(l_str)
+                    if m:
+                        t_name = m.group(1).strip()
+                        if t_name not in my_tools:
+                            my_tools.append(t_name)
+                            
+            # If it is a custom tools section (like ## Tools in health_agent and notify_agent)
+            elif "tools" in title:
+                custom_tool_header_pattern = re.compile(r'^###\s+\d+\.\s+`([^`]+)`')
+                for idx, l in enumerate(sec_lines):
+                    l_str = l.strip()
+                    m_h = custom_tool_header_pattern.match(l_str)
+                    if m_h:
+                        t_name = m_h.group(1).strip()
+                        if t_name not in my_tools:
+                            my_tools.append(t_name)
+                        if idx + 1 < len(sec_lines):
+                            desc = sec_lines[idx+1].strip()
+                            if desc and not desc.startswith("#") and not desc.startswith("-"):
+                                what_i_do.append(f"{t_name}: {desc}")
+                                
+            if "management rules" in title or "instructions & workflow" in title or "workflow" in title:
+                rule_pattern = re.compile(r'^\d+\.\s+\*\*(.*?)\*\*')
+                for l in sec_lines:
+                    l_str = l.strip()
+                    m = rule_pattern.match(l_str)
+                    if m:
+                        rule_name = m.group(1).strip()
+                        if rule_name.endswith(":"):
+                            rule_name = rule_name[:-1].strip()
+                        desc = l_str[m.end():].strip()
+                        if desc.startswith(":"):
+                            desc = desc[1:].strip()
+                        if desc:
+                            what_i_do.append(f"{rule_name}: {desc}")
+                        else:
+                            what_i_do.append(rule_name)
+                            
+            if title == "rules" or title == "general rules":
+                rule_pattern = re.compile(r'^\d+\.\s+\*\*(.*?)\*\*')
+                for l in sec_lines:
+                    l_str = l.strip()
+                    m = rule_pattern.match(l_str)
+                    if m:
+                        rule_name = m.group(1).strip()
+                        if rule_name.endswith(":"):
+                            rule_name = rule_name[:-1].strip()
+                        desc = l_str[m.end():].strip()
+                        if desc.startswith(":"):
+                            desc = desc[1:].strip()
+                        if desc:
+                            security_features.append(f"{rule_name}: {desc}")
+                        else:
+                            security_features.append(rule_name)
+                            
+        return {
+            "who_i_am": who_i_am,
+            "what_i_do": what_i_do,
+            "my_tools": my_tools,
+            "mcp_servers": mcp_servers,
+            "security_features": security_features
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse SKILL.md: {str(e)}")
+
 @app.get("/config")
 async def get_config():
     """
@@ -190,20 +347,34 @@ async def chat(request: ChatRequest):
         content = types.Content(parts=[types.Part.from_text(text=request.message)])
         
         # Run agent asynchronously
-        try:
-            async for event in runner.run_async(
-                user_id=user_id,
-                session_id=session_id,
-                new_message=content
-            ):
-                pass
-        except Exception as e:
-            import traceback
-            print("ERROR: Agent runner run_async failed:")
-            traceback.print_exc()
-            tb_str = traceback.format_exc()
-            detailed_error = f"⚠️ **Agent Runner Execution Error:** {str(e)}\n\n```\n{tb_str}\n```"
-            return {"response": detailed_error, "handled_by": friendly_names.get(agent_key, "Orchestrator")}
+        max_attempts = 4  # Initial attempt + 3 retries
+        for attempt in range(max_attempts):
+            try:
+                async for event in runner.run_async(
+                    user_id=user_id,
+                    session_id=session_id,
+                    new_message=content
+                ):
+                    pass
+                break
+            except Exception as e:
+                code = getattr(e, 'code', None)
+                if code is None:
+                    err_str = str(e).lower()
+                    if "503" in err_str:
+                        code = 503
+                
+                if code == 503 and attempt < max_attempts - 1:
+                    print(f"Got 503 error. Retrying request in 5 seconds (attempt {attempt + 1}/3)...")
+                    await asyncio.sleep(5)
+                    continue
+                
+                import traceback
+                print("ERROR: Agent runner run_async failed:")
+                traceback.print_exc()
+                tb_str = traceback.format_exc()
+                detailed_error = f"⚠️ **Agent Runner Execution Error:** {str(e)}\n\n```\n{tb_str}\n```"
+                return {"response": detailed_error, "handled_by": friendly_names.get(agent_key, "Orchestrator")}
             
         # Retrieve updated session containing final response
         updated_session = await session_service.get_session(app_name=app_name, user_id=user_id, session_id=session_id)

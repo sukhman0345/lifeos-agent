@@ -47,6 +47,7 @@ verify_local_data_isolation(AGENT_DIR)
 
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from fallback_model import FallbackGemini
 from security.telemetry import log_agent_call, make_before_callback, make_after_callback
 
 # Instantiate filesystem MCP server mapped to the notify agent directory
@@ -176,7 +177,7 @@ def daily_brief() -> str:
 # Create the Notify Agent
 notify_agent = Agent(
     name="notify_agent",
-    model="gemini-1.5-flash",
+    model=FallbackGemini(),
     description="Agent for providing daily briefs and combining status reports from other agents.",
     instruction="""
     You are the Notify Agent for LifeOS. Your primary responsibility is to provide consolidated summaries and daily briefs.

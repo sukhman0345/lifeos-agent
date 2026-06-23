@@ -44,6 +44,7 @@ verify_local_data_isolation(AGENT_DIR)
 
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from fallback_model import FallbackGemini
 from security.telemetry import log_agent_call, make_before_callback, make_after_callback
 
 # Instantiate filesystem MCP toolset mapped to the finance agent directory
@@ -85,7 +86,7 @@ def clear_expenses(confirm: str) -> str:
 # Create the Finance Agent using MCP Toolset
 finance_agent = Agent(
     name="finance_agent",
-    model="gemini-1.5-flash",
+    model=FallbackGemini(),
     description="Agent for managing personal finances, tracking expenses, and budgeting through MCP filesystem storage.",
     instruction="""
     You are the Finance Agent for LifeOS. Your primary responsibility is to manage the user's finances and budget.

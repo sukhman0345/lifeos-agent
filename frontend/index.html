@@ -1237,9 +1237,10 @@
         .robot-face-desc {
             font-size: 14px;
             color: var(--text-secondary);
-            max-width: 400px;
+            max-width: 480px;
             line-height: 1.5;
             min-height: 80px; /* Prevent layout shift during typewriter */
+            text-align: left;
         }
 
         /* Robot Capabilities Grid & Cards */
@@ -2021,49 +2022,52 @@
                 const folderName = agentFolders[activeKey];
                 const fallbackGreeting = "Hello! I am your AI specialist agent. Ready to help you manage your daily activities.";
 
-                // Fetch the skill from the backend
-                fetch(`http://localhost:8080/${folderName}/SKILL.md`)
+                // Fetch the skill from the backend agent-info endpoint
+                fetch(`http://localhost:8080/agent-info/${folderName}`)
                     .then(res => {
-                        if (!res.ok) throw new Error("Failed to load skill");
-                        return res.text();
-                    })
-                    .then(skillContent => {
-                        const apiKey = window.config && window.config.geminiApiKey;
-                        if (!apiKey) {
-                            throw new Error("Gemini API key not found in environment. Using fallback greeting.");
-                        }
-                        
-                        // Call Gemini API directly
-                        const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-                        const prompt = `Based on the following SKILL.md document, write a short, high-tech, welcoming description and greeting with emojis from the perspective of this agent explaining their role, capabilities, and how they can help the user. Keep it under 2-3 sentences and sound like a helpful, friendly AI specialist:\n\n${skillContent}`;
-                        
-                        return fetch(apiURL, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                                contents: [{
-                                    parts: [{ text: prompt }]
-                                }]
-                            })
-                        });
-                    })
-                    .then(res => {
-                        if (!res || !res.ok) {
-                            throw new Error("Gemini API call failed or was bypassed. Using fallback greeting.");
-                        }
+                        if (!res.ok) throw new Error("Failed to load agent info");
                         return res.json();
                     })
-                    .then(geminiData => {
+                    .then(data => {
                         // Safety check if we switched away in the meantime
                         if (currentAgentKey !== activeKey) return;
                         
-                        let textToType = "";
-                        try {
-                            textToType = geminiData.candidates[0].content.parts[0].text;
-                        } catch (e) {
-                            textToType = fallbackGreeting;
+                        // Construct the display text from the JSON fields
+                        let textToType = `👋 Who Am I\n${data.who_i_am}\n\n🎯 What I Do\n`;
+                        
+                        if (data.what_i_do && data.what_i_do.length > 0) {
+                            data.what_i_do.forEach(item => {
+                                textToType += `- ${item}\n`;
+                            });
+                        } else {
+                            textToType += `- General agent activities\n`;
+                        }
+                        
+                        textToType += `\n🛠️ My Tools\n`;
+                        if (data.my_tools && data.my_tools.length > 0) {
+                            data.my_tools.forEach(item => {
+                                textToType += `- ${item}\n`;
+                            });
+                        } else {
+                            textToType += `- No specialized tools\n`;
+                        }
+                        
+                        textToType += `\n🔌 MCP Server I Use\n`;
+                        if (data.mcp_servers && data.mcp_servers.length > 0) {
+                            data.mcp_servers.forEach(item => {
+                                textToType += `- ${item}\n`;
+                            });
+                        } else {
+                            textToType += `- None\n`;
+                        }
+                        
+                        textToType += `\n🔒 My Security features\n`;
+                        if (data.security_features && data.security_features.length > 0) {
+                            data.security_features.forEach(item => {
+                                textToType += `- ${item}\n`;
+                            });
+                        } else {
+                            textToType += `- Standard security protocols\n`;
                         }
                         
                         // Start word typewriter with robot animation
@@ -2220,7 +2224,7 @@
             if (robotFace) {
                 robotFace.classList.add("speaking");
             }
-            startWordTypewriterEffect(text, "robotFaceDesc", 120, () => {
+            startLineTypewriterEffect(text, "robotFaceDesc", 250, () => {
                 if (robotFace) {
                     robotFace.classList.remove("speaking");
                 }
@@ -2248,13 +2252,13 @@
             capabilitiesGrid.style.display = "flex";
         }
 
-        // Word by Word Typewriter text generator
-        function startWordTypewriterEffect(text, elementId, speed = 120, onComplete) {
+        // Line by Line Typewriter text generator
+        function startLineTypewriterEffect(text, elementId, speed = 250, onComplete) {
             const element = document.getElementById(elementId);
             if (!element) return;
-            element.innerText = "";
+            element.innerHTML = "";
             
-            const words = text.split(/\s+/);
+            const lines = text.replace(/\r/g, '').split('\n');
             let i = 0;
             
             if (activeTypewriterInterval) {
@@ -2262,8 +2266,19 @@
             }
             
             activeTypewriterInterval = setInterval(() => {
-                if (i < words.length) {
-                    element.innerText += (i === 0 ? "" : " ") + words[i];
+                if (i < lines.length) {
+                    const line = lines[i];
+                    if (line.trim() === "") {
+                        element.innerHTML += "<br>";
+                    } else {
+                        const formattedLine = formatMarkdownLine(line);
+                        if (element.innerHTML === "") {
+                            element.innerHTML = formattedLine;
+                        } else {
+                            element.innerHTML += "<br>" + formattedLine;
+                        }
+                    }
+                    scrollToBottom();
                     i++;
                 } else {
                     clearInterval(activeTypewriterInterval);
@@ -2271,6 +2286,34 @@
                     if (onComplete) onComplete();
                 }
             }, speed);
+        }
+
+        // Formats a markdown line into HTML styling for typewriter
+        function formatMarkdownLine(line) {
+            let escaped = escapeHTML(line);
+            
+            // Replace **bold** with <strong>bold</strong>
+            escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Replace *italic* with <em>italic</em>
+            escaped = escaped.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            
+            // Key headers section styling
+            const headers = ['👋 Who Am I', '🎯 What I Do', '🛠️ My Tools', '🔌 MCP Server I Use', '🔒 My Security features'];
+            for (let header of headers) {
+                if (escaped.includes(header)) {
+                    return '<h4 style="margin-top: 15px; margin-bottom: 8px; font-size: 15px; color: var(--robot-theme-color, #4f9eff); font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3px;">' + escaped + '</h4>';
+                }
+            }
+            
+            // Bullet points format
+            if (escaped.trim().startsWith('- ')) {
+                return '<div style="margin-left: 15px; text-indent: -15px; margin-top: 4px;">&bull; ' + escaped.trim().substring(2) + '</div>';
+            } else if (escaped.trim().startsWith('* ')) {
+                return '<div style="margin-left: 15px; text-indent: -15px; margin-top: 4px;">&bull; ' + escaped.trim().substring(2) + '</div>';
+            }
+            
+            return escaped;
         }
 
         // Typewriter text generator (Letter-by-Letter)

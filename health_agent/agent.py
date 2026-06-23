@@ -47,6 +47,7 @@ verify_local_data_isolation(AGENT_DIR)
 
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from fallback_model import FallbackGemini
 from security.telemetry import log_agent_call, make_before_callback, make_after_callback
 
 # Instantiate filesystem MCP server mapped to the health agent directory
@@ -189,7 +190,7 @@ def get_health_data() -> str:
 # Create the Health Agent
 health_agent = Agent(
     name="health_agent",
-    model="gemini-1.5-flash",
+    model=FallbackGemini(),
     description="Agent for tracking health parameters, logging meals/calories and workouts/durations.",
     instruction="""
     You are the Health Agent for LifeOS. Your primary responsibility is to manage the user's health logs.

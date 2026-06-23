@@ -44,6 +44,7 @@ verify_local_data_isolation(AGENT_DIR)
 
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from fallback_model import FallbackGemini
 from security.telemetry import make_before_callback, make_after_callback
 
 # Instantiate filesystem MCP toolset mapped to the task agent directory
@@ -57,7 +58,7 @@ filesystem_toolset = McpToolset(
 # Create the Task Agent
 task_agent = Agent(
     name="task_agent",
-    model="gemini-1.5-flash",
+    model=FallbackGemini(),
     description="Agent for managing personal tasks. Reads and writes tasks.json through MCP instead of direct file access.",
     instruction="""
     You are the Task Agent for LifeOS. Your primary responsibility is to manage the user's tasks.
