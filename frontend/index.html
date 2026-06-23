@@ -1424,7 +1424,6 @@
                             </div>
                             <div class="nav-btn-info">
                                 <span class="nav-btn-title">Home</span>
-                                <span class="nav-btn-desc">LifeOS Coordinator</span>
                             </div>
                         </button>
                     </li>
@@ -1443,7 +1442,6 @@
                             </div>
                             <div class="nav-btn-info">
                                 <span class="nav-btn-title">Tasks</span>
-                                <span class="nav-btn-desc">Manage to-dos & lists</span>
                             </div>
                         </button>
                     </li>
@@ -1460,7 +1458,6 @@
                             </div>
                             <div class="nav-btn-info">
                                 <span class="nav-btn-title">Schedule</span>
-                                <span class="nav-btn-desc">Meetings & reminders</span>
                             </div>
                         </button>
                     </li>
@@ -1476,7 +1473,6 @@
                             </div>
                             <div class="nav-btn-info">
                                 <span class="nav-btn-title">Finance</span>
-                                <span class="nav-btn-desc">Log expenses & budgets</span>
                             </div>
                         </button>
                     </li>
@@ -1491,7 +1487,6 @@
                             </div>
                             <div class="nav-btn-info">
                                 <span class="nav-btn-title">Health</span>
-                                <span class="nav-btn-desc">Track meals & workouts</span>
                             </div>
                         </button>
                     </li>
@@ -1516,7 +1511,6 @@
                             </div>
                             <div class="nav-btn-info">
                                 <span class="nav-btn-title">Morning Brief</span>
-                                <span class="nav-btn-desc">Summarize your day</span>
                             </div>
                         </button>
                     </li>
@@ -1572,7 +1566,7 @@
                     <div class="context-icon-wrapper" id="contextIcon"></div>
                     <div class="context-details">
                         <span class="context-title" id="contextTitle">Tasks Agent Suggestions</span>
-                        <span class="context-desc" id="contextDesc">Manage to-dos & lists. Click suggestions below to populate.</span>
+                        <span class="context-desc" id="contextDesc">Click suggestions below to populate.</span>
                     </div>
                 </div>
 
@@ -1621,7 +1615,6 @@
             tasks: {
                 name: "Tasks Agent",
                 placeholder: "Ask Tasks Agent (e.g., 'add buy milk to my tasks')...",
-                greeting: "Hello! I am your Tasks Agent. I can help you organize and check off your daily tasks. What would you like to achieve today?",
                 chips: [
                     "show my tasks",
                     "add buy milk to my tasks",
@@ -1642,7 +1635,6 @@
             schedule: {
                 name: "Schedule Agent",
                 placeholder: "Ask Schedule Agent (e.g., 'what is my schedule today')...",
-                greeting: "Welcome back! I am your Schedule Agent. Let's optimize your day. Let me know if you need to set meetings or check your agenda.",
                 chips: [
                     "what is my schedule today",
                     "schedule sync tomorrow at 3pm",
@@ -1664,7 +1656,6 @@
             finance: {
                 name: "Finance Agent",
                 placeholder: "Ask Finance Agent (e.g., 'log ₹200 for lunch')...",
-                greeting: "Hello! I am your Finance Agent. I'll help you log payments, manage budgets, and keep track of your daily expenses.",
                 chips: [
                     "show my expenses today",
                     "log ₹200 for lunch",
@@ -1686,7 +1677,6 @@
             health: {
                 name: "Health Agent",
                 placeholder: "Ask Health Agent (e.g., 'show health summary')...",
-                greeting: "Hello! Health Agent online. Log your food intake, register your workouts, or review your daily calorie count here.",
                 chips: [
                     "show health summary",
                     "log salad",
@@ -1707,7 +1697,6 @@
             brief: {
                 name: "Morning Brief",
                 placeholder: "Ask Morning Brief Agent (e.g., 'give me my morning brief')...",
-                greeting: "Good morning! Briefing Agent online. Say 'give me my morning brief' to compile a report across all active panels.",
                 chips: [
                     "give me my morning brief",
                     "show summary"
@@ -1905,7 +1894,7 @@
             const activeSvgHtml = document.querySelector(`.nav-btn[id="${targetBtnId}"] .avatar-container`).innerHTML;
             document.getElementById("contextIcon").innerHTML = activeSvgHtml;
             document.getElementById("contextTitle").innerText = `${config.name} Suggestions`;
-            document.getElementById("contextDesc").innerText = config.greeting;
+            document.getElementById("contextDesc").innerText = config.greeting || "";
 
             // Redraw prompt chips below input
             renderPromptChips(config.chips);
@@ -2022,13 +2011,23 @@
                     </div>
                 `;
                 
+                const agentFolders = {
+                    tasks: "task_agent",
+                    schedule: "schedule_agent",
+                    finance: "finance_agent",
+                    health: "health_agent",
+                    brief: "notify_agent"
+                };
+                const folderName = agentFolders[activeKey];
+                const fallbackGreeting = "Hello! I am your AI specialist agent. Ready to help you manage your daily activities.";
+
                 // Fetch the skill from the backend
-                fetch(`http://localhost:8080/skill/${activeKey}`)
+                fetch(`http://localhost:8080/${folderName}/SKILL.md`)
                     .then(res => {
                         if (!res.ok) throw new Error("Failed to load skill");
-                        return res.json();
+                        return res.text();
                     })
-                    .then(skillData => {
+                    .then(skillContent => {
                         const apiKey = window.config && window.config.geminiApiKey;
                         if (!apiKey) {
                             throw new Error("Gemini API key not found in environment. Using fallback greeting.");
@@ -2036,7 +2035,7 @@
                         
                         // Call Gemini API directly
                         const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-                        const prompt = `Based on the following SKILL.md document, write a short, high-tech, welcoming greeting from the perspective of this agent explaining their role, capabilities, and how they can help the user. Keep it under 2-3 sentences and sound like a helpful, friendly AI specialist:\n\n${skillData.content}`;
+                        const prompt = `Based on the following SKILL.md document, write a short, high-tech, welcoming description and greeting with emojis from the perspective of this agent explaining their role, capabilities, and how they can help the user. Keep it under 2-3 sentences and sound like a helpful, friendly AI specialist:\n\n${skillContent}`;
                         
                         return fetch(apiURL, {
                             method: "POST",
@@ -2064,7 +2063,7 @@
                         try {
                             textToType = geminiData.candidates[0].content.parts[0].text;
                         } catch (e) {
-                            textToType = config.greeting;
+                            textToType = fallbackGreeting;
                         }
                         
                         // Start word typewriter with robot animation
@@ -2075,7 +2074,7 @@
                         if (currentAgentKey !== activeKey) return;
                         
                         // Fallback greeting
-                        animateRobotSpeaking(config.greeting, activeKey);
+                        animateRobotSpeaking(fallbackGreeting, activeKey);
                     });
                 return;
             }

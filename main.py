@@ -1,6 +1,7 @@
 import os
 import sys
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -37,7 +38,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allows all origins for local development
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
     allow_headers=["*"],  # Allows all headers
 )
@@ -70,6 +71,23 @@ AGENT_MAPPING = {
     "brief": notify_agent,
     "notify_agent": notify_agent,
 }
+
+@app.get("/{agent_folder}/SKILL.md")
+async def get_skill_file(agent_folder: str):
+    """
+    GET /{agent_folder}/SKILL.md
+    Serves the raw SKILL.md file contents for the requested agent folder.
+    """
+    agent_folder = agent_folder.strip()
+    valid_folders = ["task_agent", "schedule_agent", "finance_agent", "health_agent", "notify_agent"]
+    if agent_folder not in valid_folders:
+        raise HTTPException(status_code=400, detail=f"Invalid agent folder: {agent_folder}")
+        
+    file_path = os.path.join(ROOT_DIR, agent_folder, "SKILL.md")
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="SKILL.md not found")
+        
+    return FileResponse(file_path, media_type="text/markdown")
 
 @app.get("/skill/{agent_key}")
 async def get_skill(agent_key: str):
