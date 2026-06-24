@@ -179,6 +179,7 @@ dmypy.json
 .pytype/
 
 credentials.json
+credentials.json.json
 token.json
 
 # Cython debug symbols
