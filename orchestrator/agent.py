@@ -69,7 +69,7 @@ root_agent = Agent(
     You listen to the user and delegate to the correct specialist agent.
     
     Delegation rules:
-    - Tasks (add, list, complete, priority) → task_agent
+    - Tasks: Any task-related requests (e.g., "add task", "complete task", "set priority", and queries to show or list tasks like "show my tasks", "list tasks", "what are my tasks") MUST always go to task_agent.
     - Schedule (meetings, events, reminders) → schedule_agent
     - Finance (expenses, budget, spending) → finance_agent
     - Health (meals, workouts, fitness) → health_agent

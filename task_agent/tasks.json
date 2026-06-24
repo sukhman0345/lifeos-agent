@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": 1,
+    "title": "buy milk",
+    "status": "done",
+    "priority": "normal"
+  },
+  {
+    "id": 2,
+    "title": "buy groceries",
+    "status": "pending",
+    "priority": "high"
+  }
+]

@@ -37,16 +37,16 @@ class FallbackGemini(Gemini):
                             await asyncio.sleep(5)
                             continue
                         else:
-                            # 503 persists -> fallback to gemini-2.0-flash
-                            logger.warning("Got 503 error on gemini-2.5-flash after retry. Falling back to gemini-2.0-flash...")
-                            current_model = "gemini-2.0-flash"
+                            # 503 persists -> fallback to gemini-2.5-flash-lite
+                            logger.warning("Got 503 error on gemini-2.5-flash after retry. Falling back to gemini-2.5-flash-lite...")
+                            current_model = "gemini-2.5-flash-lite"
                             llm_request.model = current_model
                             attempts = 0
                             continue
                     elif code == 429:
-                        # 429 -> switch to gemini-2.0-flash immediately
-                        logger.warning("Got 429 error on gemini-2.5-flash. Switching to gemini-2.0-flash immediately...")
-                        current_model = "gemini-2.0-flash"
+                        # 429 -> switch to gemini-2.5-flash-lite immediately
+                        logger.warning("Got 429 error on gemini-2.5-flash. Switching to gemini-2.5-flash-lite immediately...")
+                        current_model = "gemini-2.5-flash-lite"
                         llm_request.model = current_model
                         attempts = 0
                         continue
