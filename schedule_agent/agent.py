@@ -178,7 +178,34 @@ def create_calendar_event(summary: str, start_time: str, end_time: str = None, d
         
         event = service.events().insert(calendarId='primary', body=event_body).execute()
         html_link = event.get('htmlLink', '')
-        res = f"Event successfully created: '{summary}' on {start_time_str}. Link: {html_link} ✅"
+        event_id = event.get('id')
+        
+        # Save event_id in schedule.json
+        event_date = dt_start.strftime("%Y-%m-%d")
+        event_time = dt_start.strftime("%H:%M")
+        
+        events = _read_schedule()
+        updated = False
+        # Find if there is an event with the same title and date (without event_id) and update it
+        for e in events:
+            if e.get("title").strip().lower() == summary.strip().lower() and e.get("date") == event_date:
+                e["event_id"] = event_id
+                updated = True
+                break
+                
+        if not updated:
+            # If not found, add it directly to schedule.json
+            new_event = {
+                "title": summary,
+                "date": event_date,
+                "time": event_time,
+                "event_id": event_id
+            }
+            events.append(new_event)
+            
+        _write_schedule(events)
+        
+        res = f"Event successfully created: '{summary}' on {start_time_str}. Event ID: {event_id}. Link: {html_link} ✅"
         log_agent_call("schedule_agent", f"create_calendar_event(summary={summary}, start_time={start_time_str})", res)
         return res
     except Exception as e:
@@ -186,23 +213,36 @@ def create_calendar_event(summary: str, start_time: str, end_time: str = None, d
         log_agent_call("schedule_agent", f"create_calendar_event(summary={summary}, start_time={start_time})", err_msg)
         return err_msg
 
-def add_event(title: str, date: str, time: str) -> str:
+def add_event(title: str, date: str, time: str, event_id: str = None) -> str:
     """Save an event to the local schedule database.
 
     Args:
         title: Title/summary of the event.
         date: Date of the event in YYYY-MM-DD format.
         time: Time of the event (e.g. '15:00').
+        event_id: Optional Google Calendar event ID.
 
     Returns:
         A confirmation message indicating the event was saved locally.
     """
     events = _read_schedule()
+    # Check if this event already exists (we might have added it in create_calendar_event)
+    for e in events:
+        if e.get("title").strip().lower() == title.strip().lower() and e.get("date") == date:
+            if event_id:
+                e["event_id"] = event_id
+            _write_schedule(events)
+            res = f"Updated local schedule backup for '{title}' on {date} at {time} ✅"
+            log_agent_call("schedule_agent", f"add_event(title={title}, date={date}, time={time})", res)
+            return res
+            
     new_event = {
         "title": title,
         "date": date,
         "time": time
     }
+    if event_id:
+        new_event["event_id"] = event_id
     events.append(new_event)
     _write_schedule(events)
     res = f"Saved '{title}' on {date} at {time} to local schedule backup ✅"
@@ -251,7 +291,7 @@ def list_today_events() -> str:
     return res
 
 def delete_event(title: str) -> str:
-    """Remove an event by its title from the local schedule database.
+    """Remove an event by its title from the local schedule database and Google Calendar.
 
     Args:
         title: The exact or partial title of the event to delete.
@@ -260,23 +300,73 @@ def delete_event(title: str) -> str:
         A confirmation message indicating the event was removed, or an error if not found.
     """
     events = _read_schedule()
-    initial_count = len(events)
+    found_event = None
     
-    # Try exact case-insensitive match, then partial
+    # Try exact case-insensitive match first
     title_clean = title.strip().lower()
-    updated_events = [e for e in events if e.get("title").strip().lower() != title_clean]
-    
-    if len(updated_events) == initial_count:
-        # Fallback to partial match
-        updated_events = [e for e in events if title_clean not in e.get("title").lower()]
-        
-    if len(updated_events) == initial_count:
+    for e in events:
+        if e.get("title").strip().lower() == title_clean:
+            found_event = e
+            break
+            
+    # Try partial match if exact match not found
+    if not found_event:
+        for e in events:
+            if title_clean in e.get("title").lower():
+                found_event = e
+                break
+                
+    if not found_event:
         res = f"Error: Could not find any event matching '{title}'."
         log_agent_call("schedule_agent", f"delete_event(title={title})", res)
         return res
         
-    _write_schedule(updated_events)
-    res = f"Successfully removed event matching '{title}' from local database ✅"
+    # Get the event_id from the found event
+    event_id = found_event.get("event_id")
+    google_deleted = False
+    google_err = ""
+    
+    if event_id:
+        # Authenticate and delete from Google Calendar
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        creds_path = os.path.join(root_dir, "credentials.json")
+        token_path = os.path.join(root_dir, "token.json")
+        
+        creds = None
+        if os.path.exists(token_path):
+            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+            
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                if os.path.exists(creds_path):
+                    flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
+                    creds = flow.run_local_server(port=0)
+            if creds:
+                with open(token_path, "w") as token:
+                    token.write(creds.to_json())
+                    
+        if creds:
+            try:
+                service = build("calendar", "v3", credentials=creds)
+                service.events().delete(calendarId='primary', eventId=event_id).execute()
+                google_deleted = True
+            except Exception as e:
+                google_err = str(e)
+                
+    # Remove from local list
+    events.remove(found_event)
+    _write_schedule(events)
+    
+    if event_id:
+        if google_deleted:
+            res = f"Successfully removed event '{found_event.get('title')}' from local database and Google Calendar ✅"
+        else:
+            res = f"Successfully removed event '{found_event.get('title')}' from local database, but failed to delete from Google Calendar: {google_err} ⚠️"
+    else:
+        res = f"Successfully removed event '{found_event.get('title')}' from local database (no Google Calendar event ID found to sync deletion) ⚠️"
+        
     log_agent_call("schedule_agent", f"delete_event(title={title})", res)
     return res
 
@@ -303,7 +393,7 @@ schedule_agent = Agent(
     5. list_today_events:
        - Use this tool to show today's events from the local database.
     6. delete_event:
-       - Use this tool to delete an event by title from the local database.
+       - Use this tool to delete an event by title from the local database and Google Calendar.
        
     Rules of engagement:
     1. Whenever the user schedules a new event (e.g., "schedule meeting at 3pm tomorrow"), you MUST call BOTH `create_calendar_event` (to add it to Google Calendar) AND `add_event` (to save it to local schedule.json) in the same workflow.
