@@ -12,19 +12,13 @@ if ROOT_DIR not in sys.path:
 from dotenv import load_dotenv
 load_dotenv()
 
-
 # Map API Key if needed
 if "GOOGLE_API_KEY" in os.environ and "GEMINI_API_KEY" not in os.environ:
     os.environ["GEMINI_API_KEY"] = os.environ["GOOGLE_API_KEY"]
 
-from schedule_agent.agent import create_calendar_event
+from schedule_agent.agent import delete_event
 
-print("--- Calling create_calendar_event ---")
-res = create_calendar_event(
-    summary="Debug Test Event - Antigravity",
-    start_time="2026-06-25T15:00:00",
-    end_time="2026-06-25T16:00:00",
-    description="This is a test event created during debugging of create_calendar_event."
-)
+print("--- Calling delete_event with partial title ---")
+res = delete_event("delete Debug Test")
 print("--- Result ---")
 print(res)

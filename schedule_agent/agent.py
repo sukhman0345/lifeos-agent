@@ -325,19 +325,15 @@ def delete_event(title: str) -> str:
     events = _read_schedule()
     found_event = None
     
-    # Try exact case-insensitive match first
     title_clean = title.strip().lower()
+    if title_clean.startswith("delete "):
+        title_clean = title_clean[7:].strip()
+        
     for e in events:
-        if e.get("title").strip().lower() == title_clean:
+        event_title = e.get("title", "").strip().lower()
+        if title_clean in event_title or event_title in title_clean:
             found_event = e
             break
-            
-    # Try partial match if exact match not found
-    if not found_event:
-        for e in events:
-            if title_clean in e.get("title").lower():
-                found_event = e
-                break
                 
     if not found_event:
         res = f"Error: Could not find any event matching '{title}'."
@@ -346,6 +342,12 @@ def delete_event(title: str) -> str:
         
     # Get the event_id from the found event
     event_id = found_event.get("event_id")
+    event_title_actual = found_event.get("title")
+    
+    # Remove from local list and save/write to schedule.json first
+    events.remove(found_event)
+    _write_schedule(events)
+    
     google_deleted = False
     google_err = ""
     
@@ -372,26 +374,24 @@ def delete_event(title: str) -> str:
                     
         if creds:
             try:
-                service = build("calendar", "v3", credentials=creds)
+                import googleapiclient.discovery
+                service = googleapiclient.discovery.build("calendar", "v3", credentials=creds)
                 service.events().delete(calendarId='primary', eventId=event_id).execute()
                 google_deleted = True
             except Exception as e:
                 google_err = str(e)
                 
-    # Remove from local list
-    events.remove(found_event)
-    _write_schedule(events)
-    
     if event_id:
         if google_deleted:
-            res = f"Successfully removed event '{found_event.get('title')}' from local database and Google Calendar ✅"
+            res = f"Successfully removed event '{event_title_actual}' from local database and Google Calendar ✅"
         else:
-            res = f"Successfully removed event '{found_event.get('title')}' from local database, but failed to delete from Google Calendar: {google_err} ⚠️"
+            res = f"Successfully removed event '{event_title_actual}' from local database, but failed to delete from Google Calendar: {google_err} ⚠️"
     else:
-        res = f"Successfully removed event '{found_event.get('title')}' from local database (no Google Calendar event ID found to sync deletion) ⚠️"
+        res = f"Successfully removed event '{event_title_actual}' from local database (no Google Calendar event ID found to sync deletion) ⚠️"
         
     log_agent_call("schedule_agent", f"delete_event(title={title})", res)
     return res
+
 
 # Create the Schedule Agent using custom tools
 schedule_agent = Agent(
