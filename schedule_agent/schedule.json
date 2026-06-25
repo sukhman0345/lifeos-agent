@@ -21,5 +21,17 @@
     "date": "2026-06-25",
     "time": "15:00",
     "event_id": "hqbtujn4qql2e5q7ro91674c08"
+  },
+  {
+    "title": "doctor appointment",
+    "date": "2026-06-29",
+    "time": "16:00",
+    "event_id": "l945d6av1sj3d31rbgkhgq74r8"
+  },
+  {
+    "title": "team standup",
+    "date": "2026-06-30",
+    "time": "09:00",
+    "event_id": "70g4vmujch35inauj47nni1feo"
   }
 ]
