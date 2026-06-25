@@ -185,13 +185,11 @@ notify_agent = Agent(
     You have 1 custom tool:
     - daily_brief: Consolidate task, schedule, finance, and health summaries into a morning brief.
     
-    You also have access to the filesystem MCP server tools (read_file, write_file) to inspect files in your directory.
-    
     Follow these rules:
     1. Whenever you perform an action using a tool, make sure the tool successfully returns a confirmation, and pass that confirmation back to the user.
     2. Be polite, clear, and structured in your responses.
     """,
-    tools=[daily_brief, filesystem_toolset],
+    tools=[daily_brief],
     before_agent_callback=make_before_callback("notify_agent"),
     after_agent_callback=make_after_callback("notify_agent")
 )

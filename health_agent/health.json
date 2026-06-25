@@ -1,1 +1,52 @@
-{}
+{
+  "records": [
+    {
+      "type": "meal",
+      "name": "sandwich",
+      "calories": 600,
+      "date": "2026-06-25"
+    },
+    {
+      "type": "workout",
+      "workout_type": "jogging",
+      "duration": 45,
+      "date": "2026-06-25"
+    },
+    {
+      "type": "meal",
+      "name": "salad",
+      "calories": 350,
+      "date": "2026-06-25"
+    },
+    {
+      "type": "workout",
+      "workout_type": "yoga",
+      "duration": 40,
+      "date": "2026-06-25"
+    },
+    {
+      "type": "meal",
+      "name": "salad",
+      "calories": 350,
+      "date": "2026-06-25"
+    },
+    {
+      "type": "meal",
+      "name": "turkey sandwich",
+      "calories": 400,
+      "date": "2026-06-25"
+    },
+    {
+      "type": "meal",
+      "name": "turkey sandwich",
+      "calories": 400,
+      "date": "2026-06-25"
+    },
+    {
+      "type": "workout",
+      "workout_type": "jogging",
+      "duration": 30,
+      "date": "2026-06-25"
+    }
+  ]
+}

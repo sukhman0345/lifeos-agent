@@ -58,6 +58,15 @@ from google.genai import types
 # Setup in-memory session service to track conversation histories
 session_service = InMemorySessionService()
 
+# Create separate runners for each agent
+task_runner = Runner(agent=task_agent, app_name="lifeos_task_agent", session_service=session_service)
+schedule_runner = Runner(agent=schedule_agent, app_name="lifeos_schedule_agent", session_service=session_service)
+finance_runner = Runner(agent=finance_agent, app_name="lifeos_finance_agent", session_service=session_service)
+health_runner = Runner(agent=health_agent, app_name="lifeos_health_agent", session_service=session_service)
+notify_runner = Runner(agent=notify_agent, app_name="lifeos_notify_agent", session_service=session_service)
+orchestrator_runner = Runner(agent=orchestrator_agent, app_name="lifeos_orchestrator", session_service=session_service)
+
+
 # Agent mapping lookup table
 AGENT_MAPPING = {
     "orchestrator": orchestrator_agent,
@@ -301,16 +310,34 @@ async def chat(request: ChatRequest):
     specialist agent, runs the agent execution pipeline asynchronously,
     and returns the formatted agent response.
     """
-    agent_key = request.agent_name.lower().strip()
+    msg_lower = request.message.lower()
     
-    # Resolve the agent
-    agent = AGENT_MAPPING.get(agent_key)
-    if not agent:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Agent '{request.agent_name}' not found. Available options: {list(AGENT_MAPPING.keys())}"
-        )
-    
+    # Keyword-based routing before calling runner (specific action phrases only)
+    if any(phrase in msg_lower for phrase in ["morning brief", "daily brief"]):
+        runner = notify_runner
+        agent_key = "notify_agent"
+        agent_label = "Briefing Agent"
+    elif any(phrase in msg_lower for phrase in ["log meal", "log workout", "show health summary"]):
+        runner = health_runner
+        agent_key = "health_agent"
+        agent_label = "Health Agent"
+    elif any(phrase in msg_lower for phrase in ["schedule", "book meeting", "add event", "delete event"]):
+        runner = schedule_runner
+        agent_key = "schedule_agent"
+        agent_label = "Schedule Agent"
+    elif any(phrase in msg_lower for phrase in ["log expense", "set budget", "show expenses", "clear expenses"]):
+        runner = finance_runner
+        agent_key = "finance_agent"
+        agent_label = "Finance Agent"
+    elif any(phrase in msg_lower for phrase in ["add task", "complete task", "show tasks", "set priority"]):
+        runner = task_runner
+        agent_key = "task_agent"
+        agent_label = "Task Agent"
+    else:
+        runner = orchestrator_runner
+        agent_key = "orchestrator"
+        agent_label = "Orchestrator"
+
     friendly_names = {
         "orchestrator": "Orchestrator",
         "tasks": "Task Agent",
@@ -328,7 +355,7 @@ async def chat(request: ChatRequest):
     # Define session variables (isolating sessions by agent)
     user_id = "default_user"
     session_id = f"session_{agent_key}"
-    app_name = f"lifeos_{agent_key}"
+    app_name = runner.app_name
     
     try:
         # Retrieve or create session
@@ -336,13 +363,6 @@ async def chat(request: ChatRequest):
         if not session:
             session = await session_service.create_session(app_name=app_name, user_id=user_id, session_id=session_id)
             
-        # Instantiate Runner
-        runner = Runner(
-            agent=agent,
-            app_name=app_name,
-            session_service=session_service
-        )
-        
         # Format the user message to ADK types.Content
         content = types.Content(parts=[types.Part.from_text(text=request.message)])
         
@@ -393,10 +413,8 @@ async def chat(request: ChatRequest):
         if not response_text:
             response_text = "I completed the action but did not yield a written response."
             
-        handled_by = "Orchestrator"
-        if agent_key != "orchestrator" and agent_key in AGENT_MAPPING:
-            handled_by = friendly_names.get(agent_key, "Orchestrator")
-        else:
+        handled_by = agent_label
+        if agent_key == "orchestrator":
             if updated_session and updated_session.events:
                 for ev in reversed(updated_session.events):
                     ev_agent = getattr(ev, "agent_name", None)
@@ -412,19 +430,19 @@ async def chat(request: ChatRequest):
                         if handled_by != "Orchestrator":
                             break
                             
-        # Multi-layer fallback keyword search in response text
-        if handled_by == "Orchestrator" and response_text:
-            text_lower = response_text.lower()
-            if "task agent" in text_lower or "tasks agent" in text_lower:
-                handled_by = "Task Agent"
-            elif "schedule agent" in text_lower:
-                handled_by = "Schedule Agent"
-            elif "finance agent" in text_lower:
-                handled_by = "Finance Agent"
-            elif "health agent" in text_lower:
-                handled_by = "Health Agent"
-            elif "briefing agent" in text_lower or "morning brief" in text_lower:
-                handled_by = "Briefing Agent"
+            # Multi-layer fallback keyword search in response text
+            if handled_by == "Orchestrator" and response_text:
+                text_lower = response_text.lower()
+                if "task agent" in text_lower or "tasks agent" in text_lower:
+                    handled_by = "Task Agent"
+                elif "schedule agent" in text_lower:
+                    handled_by = "Schedule Agent"
+                elif "finance agent" in text_lower:
+                    handled_by = "Finance Agent"
+                elif "health agent" in text_lower:
+                    handled_by = "Health Agent"
+                elif "briefing agent" in text_lower or "morning brief" in text_lower:
+                    handled_by = "Briefing Agent"
             
         return {"response": response_text, "handled_by": handled_by}
         
@@ -435,7 +453,7 @@ async def chat(request: ChatRequest):
         traceback.print_exc()
         tb_str = traceback.format_exc()
         detailed_error = f"⚠️ **System Setup Error:** {str(e)}\n\n```\n{tb_str}\n```"
-        return {"response": detailed_error, "handled_by": friendly_names.get(agent_key, "Orchestrator")}
+        return {"response": detailed_error, "handled_by": agent_label}
 
 if __name__ == "__main__":
     import uvicorn
