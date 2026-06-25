@@ -3,5 +3,23 @@
     "title": "team meeting",
     "date": "2026-06-26",
     "time": "10:00"
+  },
+  {
+    "title": "team meeting",
+    "date": "2026-06-27",
+    "time": "14:00",
+    "event_id": "6oc7spc7rqa6qiq65f9jd66874"
+  },
+  {
+    "title": "project review",
+    "date": "2026-06-28",
+    "time": "11:00",
+    "event_id": "lhoan1aqugnmqd7lmplg1jq5r4"
+  },
+  {
+    "title": "Debug Test Event - Antigravity",
+    "date": "2026-06-25",
+    "time": "15:00",
+    "event_id": "hqbtujn4qql2e5q7ro91674c08"
   }
 ]

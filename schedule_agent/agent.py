@@ -104,64 +104,82 @@ def create_calendar_event(summary: str, start_time: str, end_time: str = None, d
     token_path = os.path.join(root_dir, "token.json")
     
     creds = None
-    if os.path.exists(token_path):
-        creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+    try:
+        if os.path.exists(token_path):
+            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+            if creds and creds.valid:
+                print(f"[DEBUG] OAuth token loaded successfully from: {token_path}")
+            elif creds:
+                print(f"[DEBUG] OAuth token loaded from {token_path} but is invalid/expired.")
+    except Exception as e:
+        print(f"[DEBUG] Error loading OAuth token: {e}")
         
     if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            if not os.path.exists(creds_path):
-                return f"Error: credentials.json not found at {creds_path}."
-            flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open(token_path, "w") as token:
-            token.write(creds.to_json())
+        try:
+            if creds and creds.expired and creds.refresh_token:
+                print("[DEBUG] Refreshing expired OAuth token...")
+                creds.refresh(Request())
+                print("[DEBUG] OAuth token refreshed successfully.")
+            else:
+                if not os.path.exists(creds_path):
+                    err_msg = f"Error: credentials.json not found at {creds_path}."
+                    print(f"[DEBUG] {err_msg}")
+                    return err_msg
+                print("[DEBUG] OAuth token not found or invalid. Running local server flow...")
+                flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
+                creds = flow.run_local_server(port=0)
+                print("[DEBUG] Local server flow finished successfully.")
+            
+            with open(token_path, "w") as token:
+                token.write(creds.to_json())
+            print(f"[DEBUG] OAuth token saved successfully to: {token_path}")
+        except Exception as e:
+            err_msg = f"Error during OAuth authentication: {e}"
+            print(f"[DEBUG] {err_msg}")
+            return err_msg
             
     try:
-        service = build("calendar", "v3", credentials=creds)
-        import pytz
-        tz = pytz.timezone('Asia/Kolkata')
+        print("[DEBUG] Initializing Google Calendar service...")
+        import googleapiclient.discovery
+        service = googleapiclient.discovery.build("calendar", "v3", credentials=creds)
         
-        # Helper to parse and localize datetime
-        def parse_and_localize(dt_str: str) -> datetime:
-            # Try to parse with timezone offset first
+        # Helper to parse datetime
+        def parse_datetime(dt_str: str) -> datetime:
             try:
-                dt = datetime.fromisoformat(dt_str)
+                return datetime.fromisoformat(dt_str)
             except ValueError:
                 # Fallback parse formats
                 for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d'):
                     try:
-                        dt = datetime.strptime(dt_str, fmt)
-                        break
+                        return datetime.strptime(dt_str, fmt)
                     except ValueError:
                         continue
-                else:
-                    raise ValueError(f"Cannot parse datetime '{dt_str}'.")
-            
-            # If the parsed datetime is naive (no tzinfo), localize it to Asia/Kolkata
-            if dt.tzinfo is None:
-                dt = tz.localize(dt)
-            else:
-                # If it already has a timezone, convert it to Asia/Kolkata
-                dt = dt.astimezone(tz)
-            return dt
+                raise ValueError(f"Cannot parse datetime '{dt_str}'.")
 
         try:
-            dt_start = parse_and_localize(start_time)
+            dt_start = parse_datetime(start_time)
         except ValueError as ve:
+            err_msg = f"Error parsing start time: {ve}"
+            print(f"[DEBUG] {err_msg}")
             return f"Error: {ve} Please use YYYY-MM-DDTHH:MM:SS format."
             
         if end_time:
             try:
-                dt_end = parse_and_localize(end_time)
+                dt_end = parse_datetime(end_time)
             except ValueError as ve:
+                err_msg = f"Error parsing end time: {ve}"
+                print(f"[DEBUG] {err_msg}")
                 return f"Error: {ve} Please use YYYY-MM-DDTHH:MM:SS format."
         else:
             dt_end = dt_start + timedelta(hours=1)
             
-        start_time_str = dt_start.isoformat()
-        end_time_str = dt_end.isoformat()
+        start_date = dt_start.strftime("%Y-%m-%d")
+        start_time_val = dt_start.strftime("%H:%M")
+        start_time_str = f"{start_date}T{start_time_val}:00+05:30"
+        
+        end_date = dt_end.strftime("%Y-%m-%d")
+        end_time_val = dt_end.strftime("%H:%M")
+        end_time_str = f"{end_date}T{end_time_val}:00+05:30"
             
         event_body = {
             'summary': summary,
@@ -176,19 +194,19 @@ def create_calendar_event(summary: str, start_time: str, end_time: str = None, d
             },
         }
         
+        print(f"[DEBUG] API call being made: Inserting event with body: {json.dumps(event_body, indent=2)}")
         event = service.events().insert(calendarId='primary', body=event_body).execute()
+        print(f"[DEBUG] Response from Google Calendar API: {json.dumps(event, indent=2)}")
+        
         html_link = event.get('htmlLink', '')
         event_id = event.get('id')
         
         # Save event_id in schedule.json
-        event_date = dt_start.strftime("%Y-%m-%d")
-        event_time = dt_start.strftime("%H:%M")
-        
         events = _read_schedule()
         updated = False
         # Find if there is an event with the same title and date (without event_id) and update it
         for e in events:
-            if e.get("title").strip().lower() == summary.strip().lower() and e.get("date") == event_date:
+            if e.get("title").strip().lower() == summary.strip().lower() and e.get("date") == start_date:
                 e["event_id"] = event_id
                 updated = True
                 break
@@ -197,8 +215,8 @@ def create_calendar_event(summary: str, start_time: str, end_time: str = None, d
             # If not found, add it directly to schedule.json
             new_event = {
                 "title": summary,
-                "date": event_date,
-                "time": event_time,
+                "date": start_date,
+                "time": start_time_val,
                 "event_id": event_id
             }
             events.append(new_event)
@@ -210,8 +228,13 @@ def create_calendar_event(summary: str, start_time: str, end_time: str = None, d
         return res
     except Exception as e:
         err_msg = f"Error creating calendar event: {e}"
+        print(f"[DEBUG] Any errors - Exception encountered: {e}")
+        import traceback
+        traceback.print_exc()
         log_agent_call("schedule_agent", f"create_calendar_event(summary={summary}, start_time={start_time})", err_msg)
         return err_msg
+
+
 
 def add_event(title: str, date: str, time: str, event_id: str = None) -> str:
     """Save an event to the local schedule database.
