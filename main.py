@@ -310,26 +310,35 @@ async def chat(request: ChatRequest):
     specialist agent, runs the agent execution pipeline asynchronously,
     and returns the formatted agent response.
     """
-    msg_lower = request.message.lower()
+    msg_lower = request.message.lower().strip()
     
-    # Keyword-based routing before calling runner (specific action phrases only)
-    if any(phrase in msg_lower for phrase in ["morning brief", "daily brief"]):
+    greeting_words = ['hello', 'hi', 'hey', 'how are you', 'what can you do', 'who are you', 'help', 'what are you']
+    task_keywords = ['add task', 'complete task', 'show tasks', 'list tasks', 'set priority', 'mark task', 'delete task']
+    schedule_keywords = ['schedule', 'book meeting', 'add event', 'delete event', 'cancel appointment']
+    finance_keywords = ['log expense', 'set budget', 'show expenses', 'clear expenses', 'how much did i spend']
+    health_keywords = ['log meal', 'log workout', 'show health', 'health summary']
+    notify_keywords = ['morning brief', 'daily brief', 'give me my brief']
+
+    def match(keywords):
+        return any(msg_lower == kw or msg_lower.startswith(kw) for kw in keywords)
+
+    if match(notify_keywords):
         runner = notify_runner
         agent_key = "notify_agent"
         agent_label = "Briefing Agent"
-    elif any(phrase in msg_lower for phrase in ["log meal", "log workout", "show health summary"]):
+    elif match(health_keywords):
         runner = health_runner
         agent_key = "health_agent"
         agent_label = "Health Agent"
-    elif any(phrase in msg_lower for phrase in ["schedule", "book meeting", "add event", "delete event"]):
+    elif match(schedule_keywords):
         runner = schedule_runner
         agent_key = "schedule_agent"
         agent_label = "Schedule Agent"
-    elif any(phrase in msg_lower for phrase in ["log expense", "set budget", "show expenses", "clear expenses"]):
+    elif match(finance_keywords):
         runner = finance_runner
         agent_key = "finance_agent"
         agent_label = "Finance Agent"
-    elif any(phrase in msg_lower for phrase in ["add task", "complete task", "show tasks", "set priority"]):
+    elif match(task_keywords):
         runner = task_runner
         agent_key = "task_agent"
         agent_label = "Task Agent"
@@ -337,6 +346,7 @@ async def chat(request: ChatRequest):
         runner = orchestrator_runner
         agent_key = "orchestrator"
         agent_label = "Orchestrator"
+
 
     friendly_names = {
         "orchestrator": "Orchestrator",
