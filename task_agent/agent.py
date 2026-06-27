@@ -4,6 +4,7 @@ load_dotenv()
 import os
 import json
 import sys
+import datetime
 from google.adk.agents import Agent
 
 # Define path to task_agent directory
@@ -82,6 +83,13 @@ def add_task(title: str, priority: str = "normal") -> str:
         
     tasks = _read_tasks()
     
+    # Check for duplicates case-insensitively
+    for task in tasks:
+        if task.get("title", "").strip().lower() == title.strip().lower():
+            res = "Task already exists!"
+            log_agent_call("task_agent", f"add_task(title={title}, priority={priority})", res)
+            return res
+            
     # Generate unique ID
     new_id = 1
     if tasks:
@@ -91,7 +99,8 @@ def add_task(title: str, priority: str = "normal") -> str:
         "id": new_id,
         "title": title,
         "status": "pending",
-        "priority": priority
+        "priority": priority,
+        "date": datetime.date.today().strftime("%Y-%m-%d")
     }
     
     tasks.append(new_task)
@@ -116,7 +125,8 @@ def list_tasks() -> str:
     result = "Here is the list of all tasks:\n"
     for task in tasks:
         status_emoji = "⏳" if task.get("status") == "pending" else "✅"
-        result += f"- [{task['id']}] {task['title']} (Priority: {task['priority']}) [{task.get('status', 'pending')}] {status_emoji}\n"
+        task_date = task.get("date") or datetime.date.today().strftime("%Y-%m-%d")
+        result += f"- [{task['id']}] {task['title']} (Priority: {task['priority']}) [{task.get('status', 'pending')}] {status_emoji} Added: {task_date}\n"
     res = result.strip()
     log_agent_call("task_agent", "list_tasks", res)
     return res

@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import asyncio
+import re
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -312,33 +313,46 @@ async def chat(request: ChatRequest):
     """
     msg_lower = request.message.lower().strip()
     
-    greeting_words = ['hello', 'hi', 'hey', 'how are you', 'what can you do', 'who are you', 'help', 'what are you']
+    greeting_words = ['hello','hi','hey','how are you','what can you do','who are you','help','what are you','what you do','what will you do','how you','good morning','good evening','thanks','thank you','what do you do','tell me about yourself','how many agents','what agents']
     task_keywords = ['add task', 'complete task', 'show tasks', 'list tasks', 'set priority', 'mark task', 'delete task']
     schedule_keywords = ['schedule', 'book meeting', 'add event', 'delete event', 'cancel appointment']
     finance_keywords = ['log expense', 'set budget', 'show expenses', 'clear expenses', 'how much did i spend']
     health_keywords = ['log meal', 'log workout', 'show health', 'health summary']
     notify_keywords = ['morning brief', 'daily brief', 'give me my brief']
 
-    def match(keywords):
-        return any(msg_lower == kw or msg_lower.startswith(kw) for kw in keywords)
+    is_greeting = any(
+        msg_lower == g or re.search(r'\b' + re.escape(g) + r'\b', msg_lower)
+        for g in greeting_words
+    )
 
-    if match(notify_keywords):
+    is_notify = any(w in msg_lower for w in ['brief', 'briefing', 'daily summary', 'morning summary'])
+    is_health = any(w in msg_lower for w in ['health', 'meal', 'workout', 'fitness', 'calorie', 'calories', 'gym', 'exercise', 'run', 'diet', 'breakfast', 'lunch', 'dinner', 'eat', 'sleep', 'slept'])
+    is_schedule = any(w in msg_lower for w in ['schedule', 'calendar', 'meeting', 'appointment', 'event', 'appt']) or any(w in msg_lower for w in ['book', 'appoint']) or ("add" in msg_lower and any(w in msg_lower for w in ['event', 'meeting', 'calendar']))
+    is_finance = any(w in msg_lower for w in ['expense', 'budget', 'money', 'finance', 'spent', 'spend', 'cost', 'price', '$'])
+    is_task = any(w in msg_lower for w in ['task', 'tasks', 'todo', 'todos']) or any(w in msg_lower for w in ['complete', 'completed', 'mark done', 'finish', 'finished', 'done']) or any(w in msg_lower for w in ['delete', 'remove', 'priority', 'prioritize']) or ("add" in msg_lower and ("task" in msg_lower or "tasks" in msg_lower)) or any(w in msg_lower for w in ['to my tasks', 'my tasks', 'to tasks'])
+
+
+    if is_greeting:
+        runner = orchestrator_runner
+        agent_key = "orchestrator"
+        agent_label = "Orchestrator"
+    elif is_notify:
         runner = notify_runner
         agent_key = "notify_agent"
-        agent_label = "Briefing Agent"
-    elif match(health_keywords):
-        runner = health_runner
-        agent_key = "health_agent"
-        agent_label = "Health Agent"
-    elif match(schedule_keywords):
-        runner = schedule_runner
-        agent_key = "schedule_agent"
-        agent_label = "Schedule Agent"
-    elif match(finance_keywords):
+        agent_label = "Notify Agent"
+    elif is_finance:
         runner = finance_runner
         agent_key = "finance_agent"
         agent_label = "Finance Agent"
-    elif match(task_keywords):
+    elif is_schedule:
+        runner = schedule_runner
+        agent_key = "schedule_agent"
+        agent_label = "Schedule Agent"
+    elif is_health:
+        runner = health_runner
+        agent_key = "health_agent"
+        agent_label = "Health Agent"
+    elif is_task:
         runner = task_runner
         agent_key = "task_agent"
         agent_label = "Task Agent"
@@ -372,6 +386,8 @@ async def chat(request: ChatRequest):
         session = await session_service.get_session(app_name=app_name, user_id=user_id, session_id=session_id)
         if not session:
             session = await session_service.create_session(app_name=app_name, user_id=user_id, session_id=session_id)
+            
+        num_events_before = len(session.events) if session.events else 0
             
         # Format the user message to ADK types.Content
         content = types.Content(parts=[types.Part.from_text(text=request.message)])
@@ -424,9 +440,13 @@ async def chat(request: ChatRequest):
             response_text = "I completed the action but did not yield a written response."
             
         handled_by = agent_label
-        if agent_key == "orchestrator":
+        if is_greeting:
+            handled_by = "Orchestrator"
+        elif agent_key == "orchestrator":
             if updated_session and updated_session.events:
-                for ev in reversed(updated_session.events):
+                # Scan only the new events added during this turn
+                new_events = updated_session.events[num_events_before:]
+                for ev in reversed(new_events):
                     ev_agent = getattr(ev, "agent_name", None)
                     if ev_agent and ev_agent.lower() != "lifeos_orchestrator":
                         clean_ev_agent = ev_agent.lower().strip()
@@ -440,8 +460,8 @@ async def chat(request: ChatRequest):
                         if handled_by != "Orchestrator":
                             break
                             
-            # Multi-layer fallback keyword search in response text
-            if handled_by == "Orchestrator" and response_text:
+            # Multi-layer fallback keyword search in response text (skipped for greetings)
+            if handled_by == "Orchestrator" and response_text and not is_greeting:
                 text_lower = response_text.lower()
                 if "task agent" in text_lower or "tasks agent" in text_lower:
                     handled_by = "Task Agent"
