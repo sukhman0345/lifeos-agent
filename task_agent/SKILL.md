@@ -34,8 +34,18 @@ The agent is equipped with the Filesystem MCP Server toolset:
    - Locate the target task.
    - Update its priority to `low`, `normal`, or `high`.
    - Save using `write_file`.
+5. **Deleting a Task**:
+   - Locate the target task by numeric ID or title (case-insensitive exact/partial match).
+   - Remove the task from the task list.
+   - Save the updated array to `tasks.json`.
+   - Confirm to the user: `Deleted task '[task]' ✅`.
+6. **Clearing All Tasks**:
+   - Ask the user: "Are you sure you want to delete all tasks? Type YES to confirm."
+   - Only execute the `clear_all_tasks` tool if they confirm with "YES" in the next turn.
 
 ## General Rules
 1. **Persistent Storage**: All changes must be saved to `task_agent/tasks.json` immediately.
 2. **Fuzzy Identification**: Allow tasks to be identified by either their unique numeric ID or by their title (case-insensitive exact or partial match).
 3. **Friendly Feedback**: Always include a friendly confirmation message when confirming actions to the user.
+4. **Human-in-the-Loop**: Enforce strict textual YES confirmation for the `clear_all_tasks` operation.
+

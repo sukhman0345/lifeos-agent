@@ -1,4 +1,5 @@
 import os
+import json
 import sys
 import time
 import asyncio
@@ -313,6 +314,42 @@ async def chat(request: ChatRequest):
     """
     msg_lower = request.message.lower().strip()
     
+    # Check if any specialist agent confirmation is pending before routing
+    pending_agent = None
+    task_pending_file = os.path.join(ROOT_DIR, "task_agent", "pending_confirmation.json")
+    if os.path.exists(task_pending_file):
+        try:
+            with open(task_pending_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if data.get("confirmation_pending", False):
+                    pending_agent = "task_agent"
+        except Exception:
+            pass
+
+    finance_pending_file = os.path.join(ROOT_DIR, "finance_agent", "pending_confirmation.json")
+    if os.path.exists(finance_pending_file):
+        try:
+            with open(finance_pending_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if data.get("confirmation_pending", False):
+                    pending_agent = "finance_agent"
+        except Exception:
+            pass
+
+    # Update user message in the pending confirmation file if pending
+    if pending_agent == "task_agent":
+        try:
+            with open(task_pending_file, "w", encoding="utf-8") as f:
+                json.dump({"confirmation_pending": True, "user_message": request.message}, f, indent=2)
+        except Exception:
+            pass
+    elif pending_agent == "finance_agent":
+        try:
+            with open(finance_pending_file, "w", encoding="utf-8") as f:
+                json.dump({"confirmation_pending": True, "user_message": request.message}, f, indent=2)
+        except Exception:
+            pass
+
     greeting_words = ['hello','hi','hey','how are you','what can you do','who are you','help','what are you','what you do','what will you do','how you','good morning','good evening','thanks','thank you','what do you do','tell me about yourself','how many agents','what agents']
     task_keywords = ['add task', 'complete task', 'show tasks', 'list tasks', 'set priority', 'mark task', 'delete task']
     schedule_keywords = ['schedule', 'book meeting', 'add event', 'delete event', 'cancel appointment']
@@ -331,8 +368,15 @@ async def chat(request: ChatRequest):
     is_finance = any(w in msg_lower for w in ['expense', 'budget', 'money', 'finance', 'spent', 'spend', 'cost', 'price', '$'])
     is_task = any(w in msg_lower for w in ['task', 'tasks', 'todo', 'todos']) or any(w in msg_lower for w in ['complete', 'completed', 'mark done', 'finish', 'finished', 'done']) or any(w in msg_lower for w in ['delete', 'remove', 'priority', 'prioritize']) or ("add" in msg_lower and ("task" in msg_lower or "tasks" in msg_lower)) or any(w in msg_lower for w in ['to my tasks', 'my tasks', 'to tasks'])
 
-
-    if is_greeting:
+    if pending_agent == "task_agent":
+        runner = task_runner
+        agent_key = "task_agent"
+        agent_label = "Task Agent"
+    elif pending_agent == "finance_agent":
+        runner = finance_runner
+        agent_key = "finance_agent"
+        agent_label = "Finance Agent"
+    elif is_greeting:
         runner = orchestrator_runner
         agent_key = "orchestrator"
         agent_label = "Orchestrator"
@@ -361,7 +405,6 @@ async def chat(request: ChatRequest):
         agent_key = "orchestrator"
         agent_label = "Orchestrator"
 
-
     friendly_names = {
         "orchestrator": "Orchestrator",
         "tasks": "Task Agent",
@@ -376,106 +419,135 @@ async def chat(request: ChatRequest):
         "notify_agent": "Briefing Agent"
     }
     
-    # Define session variables (isolating sessions by agent)
-    user_id = "default_user"
-    session_id = f"session_{agent_key}"
-    app_name = runner.app_name
-    
     try:
-        # Retrieve or create session
-        session = await session_service.get_session(app_name=app_name, user_id=user_id, session_id=session_id)
-        if not session:
-            session = await session_service.create_session(app_name=app_name, user_id=user_id, session_id=session_id)
+        try:
+            # Define session variables (isolating sessions by agent)
+            user_id = "default_user"
+            session_id = f"session_{agent_key}"
+            app_name = runner.app_name
             
-        num_events_before = len(session.events) if session.events else 0
-            
-        # Format the user message to ADK types.Content
-        content = types.Content(parts=[types.Part.from_text(text=request.message)])
-        
-        # Run agent asynchronously
-        max_attempts = 4  # Initial attempt + 3 retries
-        for attempt in range(max_attempts):
-            try:
-                async for event in runner.run_async(
-                    user_id=user_id,
-                    session_id=session_id,
-                    new_message=content
-                ):
-                    pass
-                break
-            except Exception as e:
-                code = getattr(e, 'code', None)
-                if code is None:
-                    err_str = str(e).lower()
-                    if "503" in err_str:
-                        code = 503
+            # Retrieve or create session
+            session = await session_service.get_session(app_name=app_name, user_id=user_id, session_id=session_id)
+            if not session:
+                session = await session_service.create_session(app_name=app_name, user_id=user_id, session_id=session_id)
                 
-                if code == 503 and attempt < max_attempts - 1:
-                    print(f"Got 503 error. Retrying request in 5 seconds (attempt {attempt + 1}/3)...")
-                    await asyncio.sleep(5)
-                    continue
+            num_events_before = len(session.events) if session.events else 0
                 
-                import traceback
-                print("ERROR: Agent runner run_async failed:")
-                traceback.print_exc()
-                tb_str = traceback.format_exc()
-                detailed_error = f"⚠️ **Agent Runner Execution Error:** {str(e)}\n\n```\n{tb_str}\n```"
-                return {"response": detailed_error, "handled_by": friendly_names.get(agent_key, "Orchestrator")}
+            # Format the user message to ADK types.Content
+            content = types.Content(parts=[types.Part.from_text(text=request.message)])
             
-        # Retrieve updated session containing final response
-        updated_session = await session_service.get_session(app_name=app_name, user_id=user_id, session_id=session_id)
-        
-        response_text = ""
-        if updated_session and updated_session.events:
-            # Look backwards for the latest text response from the agent
-            for ev in reversed(updated_session.events):
-                if ev.content and ev.content.parts:
-                    parts_txt = [p.text for p in ev.content.parts if p.text]
-                    if parts_txt:
-                        response_text = " ".join(parts_txt)
-                        break
-        
-        # Fallback if no text event parts were found
-        if not response_text:
-            response_text = "I completed the action but did not yield a written response."
+            # Run agent asynchronously
+            max_attempts = 4  # Initial attempt + 3 retries
+            for attempt in range(max_attempts):
+                try:
+                    async for event in runner.run_async(
+                        user_id=user_id,
+                        session_id=session_id,
+                        new_message=content
+                    ):
+                        pass
+                    break
+                except Exception as e:
+                    code = getattr(e, 'code', None)
+                    if code is None:
+                        err_str = str(e).lower()
+                        if "503" in err_str:
+                            code = 503
+                    
+                    if code == 503 and attempt < max_attempts - 1:
+                        print(f"Got 503 error. Retrying request in 5 seconds (attempt {attempt + 1}/3)...")
+                        await asyncio.sleep(5)
+                        continue
+                    
+                    import traceback
+                    print("ERROR: Agent runner run_async failed:")
+                    traceback.print_exc()
+                    tb_str = traceback.format_exc()
+                    detailed_error = f"⚠️ **Agent Runner Execution Error:** {str(e)}\n\n```\n{tb_str}\n```"
+                    return {"response": detailed_error, "handled_by": friendly_names.get(agent_key, "Orchestrator")}
+                
+            # Retrieve updated session containing final response
+            updated_session = await session_service.get_session(app_name=app_name, user_id=user_id, session_id=session_id)
             
-        handled_by = agent_label
-        if is_greeting:
-            handled_by = "Orchestrator"
-        elif agent_key == "orchestrator":
+            response_text = ""
             if updated_session and updated_session.events:
-                # Scan only the new events added during this turn
-                new_events = updated_session.events[num_events_before:]
-                for ev in reversed(new_events):
-                    ev_agent = getattr(ev, "agent_name", None)
-                    if ev_agent and ev_agent.lower() != "lifeos_orchestrator":
-                        clean_ev_agent = ev_agent.lower().strip()
-                        if clean_ev_agent in friendly_names:
-                            handled_by = friendly_names[clean_ev_agent]
+                # Look backwards for the latest text response from the agent
+                for ev in reversed(updated_session.events):
+                    if ev.content and ev.content.parts:
+                        parts_txt = [p.text for p in ev.content.parts if p.text]
+                        if parts_txt:
+                            response_text = " ".join(parts_txt)
                             break
-                        for k, friendly in friendly_names.items():
-                            if k in clean_ev_agent:
-                                handled_by = friendly
-                                break
-                        if handled_by != "Orchestrator":
-                            break
-                            
-            # Multi-layer fallback keyword search in response text (skipped for greetings)
-            if handled_by == "Orchestrator" and response_text and not is_greeting:
-                text_lower = response_text.lower()
-                if "task agent" in text_lower or "tasks agent" in text_lower:
-                    handled_by = "Task Agent"
-                elif "schedule agent" in text_lower:
-                    handled_by = "Schedule Agent"
-                elif "finance agent" in text_lower:
-                    handled_by = "Finance Agent"
-                elif "health agent" in text_lower:
-                    handled_by = "Health Agent"
-                elif "briefing agent" in text_lower or "morning brief" in text_lower:
-                    handled_by = "Briefing Agent"
             
-        return {"response": response_text, "handled_by": handled_by}
-        
+            # Fallback if no text event parts were found
+            if not response_text:
+                response_text = "I completed the action but did not yield a written response."
+                
+            # If the response asks for confirmation, set pending confirmation state
+            if "yes to confirm" in response_text.lower():
+                if agent_key == "task_agent":
+                    try:
+                        with open(task_pending_file, "w", encoding="utf-8") as f:
+                            json.dump({"confirmation_pending": True}, f, indent=2)
+                    except Exception:
+                        pass
+                elif agent_key == "finance_agent":
+                    try:
+                        with open(finance_pending_file, "w", encoding="utf-8") as f:
+                            json.dump({"confirmation_pending": True}, f, indent=2)
+                    except Exception:
+                        pass
+
+            handled_by = agent_label
+            if is_greeting:
+                handled_by = "Orchestrator"
+            elif agent_key == "orchestrator":
+                if updated_session and updated_session.events:
+                    # Scan only the new events added during this turn
+                    new_events = updated_session.events[num_events_before:]
+                    for ev in reversed(new_events):
+                        ev_agent = getattr(ev, "agent_name", None)
+                        if ev_agent and ev_agent.lower() != "lifeos_orchestrator":
+                            clean_ev_agent = ev_agent.lower().strip()
+                            if clean_ev_agent in friendly_names:
+                                handled_by = friendly_names[clean_ev_agent]
+                                break
+                            for k, friendly in friendly_names.items():
+                                if k in clean_ev_agent:
+                                    handled_by = friendly
+                                    break
+                            if handled_by != "Orchestrator":
+                                break
+                                
+                # Multi-layer fallback keyword search in response text (skipped for greetings)
+                if handled_by == "Orchestrator" and response_text and not is_greeting:
+                    text_lower = response_text.lower()
+                    if "task agent" in text_lower or "tasks agent" in text_lower:
+                        handled_by = "Task Agent"
+                    elif "schedule agent" in text_lower:
+                        handled_by = "Schedule Agent"
+                    elif "finance agent" in text_lower:
+                        handled_by = "Finance Agent"
+                    elif "health agent" in text_lower:
+                        handled_by = "Health Agent"
+                    elif "briefing agent" in text_lower or "morning brief" in text_lower:
+                        handled_by = "Briefing Agent"
+                
+            return {"response": response_text, "handled_by": handled_by}
+        finally:
+            if pending_agent == "task_agent":
+                try:
+                    with open(task_pending_file, "w", encoding="utf-8") as f:
+                        json.dump({"confirmation_pending": False}, f, indent=2)
+                except Exception:
+                    pass
+            elif pending_agent == "finance_agent":
+                try:
+                    with open(finance_pending_file, "w", encoding="utf-8") as f:
+                        json.dump({"confirmation_pending": False}, f, indent=2)
+                except Exception:
+                    pass
+            
     except Exception as e:
         # Log stacktrace for server-side debugging
         import traceback

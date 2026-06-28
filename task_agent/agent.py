@@ -10,6 +10,7 @@ from google.adk.agents import Agent
 # Define path to task_agent directory
 AGENT_DIR = os.path.dirname(os.path.abspath(__file__))
 TASKS_FILE = os.path.join(AGENT_DIR, "tasks.json")
+PENDING_CONFIRMATION_FILE = os.path.join(AGENT_DIR, "pending_confirmation.json")
 
 # Define custom SecurityError class
 class SecurityError(Exception):
@@ -67,6 +68,33 @@ def _write_tasks(tasks: list) -> None:
     except Exception as e:
         print(f"Error writing tasks: {e}")
 
+def _read_pending_confirmation() -> dict:
+    """Read pending confirmation state."""
+    if not os.path.exists(PENDING_CONFIRMATION_FILE):
+        return {}
+    try:
+        with open(PENDING_CONFIRMATION_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _write_pending_confirmation(data: dict) -> None:
+    """Write pending confirmation state."""
+    try:
+        with open(PENDING_CONFIRMATION_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"Error writing pending confirmation: {e}")
+
+def is_confirmation_pending_and_yes() -> bool:
+    """Check if task deletion confirmation is pending and the user said YES."""
+    data = _read_pending_confirmation()
+    if data.get("confirmation_pending", False):
+        user_msg = data.get("user_message", "").strip().upper()
+        if user_msg == "YES":
+            return True
+    return False
+
 def add_task(title: str, priority: str = "normal") -> str:
     """Add a new task to the task list.
 
@@ -77,6 +105,9 @@ def add_task(title: str, priority: str = "normal") -> str:
     Returns:
         A confirmation message indicating the task was added.
     """
+    if is_confirmation_pending_and_yes():
+        return clear_all_tasks("YES")
+
     priority = priority.strip().lower()
     if priority not in ("low", "normal", "high"):
         priority = "normal"
@@ -116,6 +147,9 @@ def list_tasks() -> str:
     Returns:
         A formatted string listing all tasks, or a message indicating there are none.
     """
+    if is_confirmation_pending_and_yes():
+        return clear_all_tasks("YES")
+
     tasks = _read_tasks()
     if not tasks:
         res = "You have no tasks! 🎉"
@@ -235,27 +269,100 @@ def set_priority(task_id_or_title: str, priority: str) -> str:
     log_agent_call("task_agent", f"set_priority(task_id_or_title={task_id_or_title}, priority={priority})", res)
     return res
 
+def delete_task(task_id_or_title: str) -> str:
+    """Delete/remove a task by its ID or title.
+
+    Args:
+        task_id_or_title: The ID (as a number or string) or the exact/partial title of the task to delete.
+
+    Returns:
+        A confirmation message indicating the task was deleted, or an error if not found.
+    """
+    tasks = _read_tasks()
+    found_task = None
+    
+    # Try parsing as ID first
+    try:
+        target_id = int(task_id_or_title)
+        for task in tasks:
+            if task.get("id") == target_id:
+                found_task = task
+                break
+    except ValueError:
+        pass
+        
+    # If not found by ID, try exact title match (case-insensitive)
+    if not found_task:
+        for task in tasks:
+            if task.get("title").strip().lower() == task_id_or_title.strip().lower():
+                found_task = task
+                break
+                
+    # If still not found, try partial match
+    if not found_task:
+        for task in tasks:
+            if task_id_or_title.strip().lower() in task.get("title").lower():
+                found_task = task
+                break
+                
+    if not found_task:
+        res = f"Error: Could not find any task matching '{task_id_or_title}'."
+        log_agent_call("task_agent", f"delete_task(task_id_or_title={task_id_or_title})", res)
+        return res
+        
+    tasks.remove(found_task)
+    _write_tasks(tasks)
+    
+    res = f"Deleted task '{found_task['title']}' ✅"
+    log_agent_call("task_agent", f"delete_task(task_id_or_title={task_id_or_title})", res)
+    return res
+
+def clear_all_tasks(confirm: str) -> str:
+    """Delete ALL tasks from tasks.json. Requires human confirmation first.
+
+    Args:
+        confirm: Confirmation string. MUST be exactly 'YES' to confirm the action.
+    """
+    if confirm != "YES":
+        _write_pending_confirmation({"confirmation_pending": True})
+        res = "Are you sure you want to delete all tasks? Type YES to confirm."
+        log_agent_call("task_agent", f"clear_all_tasks(confirm={confirm})", res)
+        return res
+
+    _write_tasks([])
+    _write_pending_confirmation({"confirmation_pending": False})
+    res = "All tasks have been cleared successfully. ✅"
+    log_agent_call("task_agent", f"clear_all_tasks(confirm={confirm})", res)
+    return res
+
 # Create the Task Agent
 task_agent = Agent(
     name="task_agent",
     model=FallbackGemini(),
-    description="Agent for managing personal tasks. It can add tasks, list all tasks, complete tasks, and set task priorities.",
+    description="Agent for managing personal tasks. It can add, list, complete, set priorities, delete, and clear tasks.",
     instruction="""
     You are the Task Agent for LifeOS. Your primary responsibility is to manage the user's tasks.
     
-    You have 4 tools available:
+    You have 6 tools available:
     - add_task: Add a new task (optionally with a priority).
     - list_tasks: Show all tasks (both pending and completed).
     - complete_task: Mark a task as done.
     - set_priority: Set task priority to low, normal, or high.
+    - delete_task: Delete/remove a task by its ID or title.
+    - clear_all_tasks: Delete all tasks. Requires human confirmation first.
     
     Follow these rules:
     1. Whenever you perform an action using a tool, make sure the tool successfully returns a confirmation, and pass that confirmation back to the user.
     2. Save all task data to tasks.json.
     3. List all tasks (both pending and completed) when asked to list or show tasks.
     4. Be polite, clear, and structured in your responses.
+    5. Enforce Human-in-the-Loop (HITL) for Clearing All Tasks:
+       - When the user asks to clear or delete all tasks (e.g., "clear all tasks", "delete all tasks", or similar), you MUST ask the user: "Are you sure you want to delete all tasks? Type YES to confirm."
+       - You MUST NOT call the `clear_all_tasks` tool in the same turn. You must wait for the user's confirmation.
+       - Only proceed to call the `clear_all_tasks` tool with `confirm="YES"` if the user explicitly replies with "YES" (case-insensitive) in their very next message.
+       - If the user replies with anything other than "YES" (e.g., "no", "cancel", "don't do it"), abort the operation and inform the user that it was canceled.
     """,
-    tools=[add_task, list_tasks, complete_task, set_priority],
+    tools=[add_task, list_tasks, complete_task, set_priority, delete_task, clear_all_tasks],
     before_agent_callback=make_before_callback("task_agent"),
     after_agent_callback=make_after_callback("task_agent")
 )
