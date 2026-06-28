@@ -1,25 +1,8 @@
 [
   {
     "title": "team meeting",
-    "date": "2026-06-26",
-    "time": "10:00"
-  },
-  {
-    "title": "team meeting",
-    "date": "2026-06-27",
-    "time": "14:00",
-    "event_id": "6oc7spc7rqa6qiq65f9jd66874"
-  },
-  {
-    "title": "project review",
-    "date": "2026-06-28",
-    "time": "11:00",
-    "event_id": "lhoan1aqugnmqd7lmplg1jq5r4"
-  },
-  {
-    "title": "doctor appointment",
-    "date": "2026-06-29",
-    "time": "16:00",
-    "event_id": "l945d6av1sj3d31rbgkhgq74r8"
+    "date": "2026-06-30",
+    "time": "10:00",
+    "event_id": "0t2nj1dhpmp6kjmvbie601erp0"
   }
 ]

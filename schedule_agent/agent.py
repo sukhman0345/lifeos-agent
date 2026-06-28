@@ -313,33 +313,57 @@ def list_today_events() -> str:
     log_agent_call("schedule_agent", "list_today_events()", res)
     return res
 
-def delete_event(title: str) -> str:
+def delete_event(title: str, date: str = None) -> str:
     """Remove an event by its title from the local schedule database and Google Calendar.
 
     Args:
         title: The exact or partial title of the event to delete.
+        date: Optional date of the event in YYYY-MM-DD format to resolve ambiguity when multiple events have the same title.
 
     Returns:
         A confirmation message indicating the event was removed, or an error if not found.
     """
     events = _read_schedule()
-    found_event = None
     
     title_clean = title.strip().lower()
     if title_clean.startswith("delete "):
         title_clean = title_clean[7:].strip()
         
+    matching_events = []
     for e in events:
         event_title = e.get("title", "").strip().lower()
         if title_clean in event_title or event_title in title_clean:
-            found_event = e
-            break
-                
-    if not found_event:
+            matching_events.append(e)
+            
+    if not matching_events:
         res = f"Error: Could not find any event matching '{title}'."
-        log_agent_call("schedule_agent", f"delete_event(title={title})", res)
+        log_agent_call("schedule_agent", f"delete_event(title={title}, date={date})", res)
         return res
         
+    if date:
+        date_clean = date.strip()
+        matching_events = [e for e in matching_events if e.get("date") == date_clean]
+        if not matching_events:
+            res = f"Error: Could not find any event matching '{title}' on {date_clean}."
+            log_agent_call("schedule_agent", f"delete_event(title={title}, date={date})", res)
+            return res
+
+    if len(matching_events) > 1:
+        # Construct plural title
+        display_title = title_clean
+        if not display_title.endswith("s"):
+            display_title += "s"
+            
+        items = []
+        for idx, e in enumerate(matching_events, 1):
+            items.append(f"{idx}) {e.get('title')} on {e.get('date')} at {e.get('time')}")
+        items_str = ", ".join(items)
+        res = f"Found {len(matching_events)} {display_title}: {items_str}. Which one would you like to delete? Please specify the date."
+        log_agent_call("schedule_agent", f"delete_event(title={title}, date={date})", res)
+        return res
+
+    found_event = matching_events[0]
+    
     # Get the event_id from the found event
     event_id = found_event.get("event_id")
     event_title_actual = found_event.get("title")
@@ -389,7 +413,7 @@ def delete_event(title: str) -> str:
     else:
         res = f"Successfully removed event '{event_title_actual}' from local database (no Google Calendar event ID found to sync deletion) ⚠️"
         
-    log_agent_call("schedule_agent", f"delete_event(title={title})", res)
+    log_agent_call("schedule_agent", f"delete_event(title={title}, date={date})", res)
     return res
 
 
@@ -416,13 +440,15 @@ schedule_agent = Agent(
     5. list_today_events:
        - Use this tool to show today's events from the local database.
     6. delete_event:
-       - Use this tool to delete an event by title from the local database and Google Calendar.
+       - Use this tool to delete an event by title from the local database and Google Calendar. Always call this tool first. If multiple events with the same title exist, the tool will return a list of matches asking for the date.
        
     Rules of engagement:
     1. Whenever the user schedules a new event (e.g., "schedule meeting at 3pm tomorrow"), you MUST call BOTH `create_calendar_event` (to add it to Google Calendar) AND `add_event` (to save it to local schedule.json) in the same workflow.
     2. Relative Dates: Always run `get_current_date` first before resolving relative dates like "tomorrow".
-    3. Always confirm to the user after completing every action successfully.
-    4. Be friendly, polite, clear, and structured in your responses.
+    3. Ambiguous Events: If delete_event returns a message listing multiple options, display that message to the user and wait for them to specify the date. Do not delete any event until they specify the exact date. Once they specify it, call delete_event again with both title and date.
+    4. Listing Events/Appointments: ALWAYS call the `list_events` tool when the user asks to show, list, or view appointments, meetings, events, or their schedule.
+    5. Always confirm to the user after completing every action successfully.
+    6. Be friendly, polite, clear, and structured in your responses.
     """,
     tools=[get_current_date, create_calendar_event, add_event, list_events, list_today_events, delete_event],
     before_agent_callback=make_before_callback("schedule_agent"),

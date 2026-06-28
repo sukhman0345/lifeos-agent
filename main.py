@@ -336,6 +336,16 @@ async def chat(request: ChatRequest):
         except Exception:
             pass
 
+    schedule_pending_file = os.path.join(ROOT_DIR, "schedule_agent", "pending_confirmation.json")
+    if os.path.exists(schedule_pending_file):
+        try:
+            with open(schedule_pending_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if data.get("confirmation_pending", False):
+                    pending_agent = "schedule_agent"
+        except Exception:
+            pass
+
     # Update user message in the pending confirmation file if pending
     if pending_agent == "task_agent":
         try:
@@ -346,6 +356,12 @@ async def chat(request: ChatRequest):
     elif pending_agent == "finance_agent":
         try:
             with open(finance_pending_file, "w", encoding="utf-8") as f:
+                json.dump({"confirmation_pending": True, "user_message": request.message}, f, indent=2)
+        except Exception:
+            pass
+    elif pending_agent == "schedule_agent":
+        try:
+            with open(schedule_pending_file, "w", encoding="utf-8") as f:
                 json.dump({"confirmation_pending": True, "user_message": request.message}, f, indent=2)
         except Exception:
             pass
@@ -376,6 +392,10 @@ async def chat(request: ChatRequest):
         runner = finance_runner
         agent_key = "finance_agent"
         agent_label = "Finance Agent"
+    elif pending_agent == "schedule_agent":
+        runner = schedule_runner
+        agent_key = "schedule_agent"
+        agent_label = "Schedule Agent"
     elif is_greeting:
         runner = orchestrator_runner
         agent_key = "orchestrator"
@@ -484,7 +504,20 @@ async def chat(request: ChatRequest):
                 response_text = "I completed the action but did not yield a written response."
                 
             # If the response asks for confirmation, set pending confirmation state
-            if "yes to confirm" in response_text.lower():
+            is_task_pending = "yes to confirm" in response_text.lower()
+            is_schedule_pending = "which one would you like to delete" in response_text.lower() or "please specify the date" in response_text.lower()
+            
+            # Scan new session events for the tool output as a fallback
+            if not is_schedule_pending and updated_session and updated_session.events:
+                new_events = updated_session.events[num_events_before:]
+                for ev in new_events:
+                    if ev.content:
+                        ev_str = str(ev.content).lower()
+                        if "which one would you like to delete" in ev_str or "please specify the date" in ev_str:
+                            is_schedule_pending = True
+                            break
+
+            if is_task_pending:
                 if agent_key == "task_agent":
                     try:
                         with open(task_pending_file, "w", encoding="utf-8") as f:
@@ -494,6 +527,13 @@ async def chat(request: ChatRequest):
                 elif agent_key == "finance_agent":
                     try:
                         with open(finance_pending_file, "w", encoding="utf-8") as f:
+                            json.dump({"confirmation_pending": True}, f, indent=2)
+                    except Exception:
+                        pass
+            elif is_schedule_pending:
+                if agent_key == "schedule_agent":
+                    try:
+                        with open(schedule_pending_file, "w", encoding="utf-8") as f:
                             json.dump({"confirmation_pending": True}, f, indent=2)
                     except Exception:
                         pass
@@ -544,6 +584,12 @@ async def chat(request: ChatRequest):
             elif pending_agent == "finance_agent":
                 try:
                     with open(finance_pending_file, "w", encoding="utf-8") as f:
+                        json.dump({"confirmation_pending": False}, f, indent=2)
+                except Exception:
+                    pass
+            elif pending_agent == "schedule_agent":
+                try:
+                    with open(schedule_pending_file, "w", encoding="utf-8") as f:
                         json.dump({"confirmation_pending": False}, f, indent=2)
                 except Exception:
                     pass
