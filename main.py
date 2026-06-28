@@ -419,6 +419,14 @@ async def chat(request: ChatRequest):
         runner = notify_runner
         agent_key = "notify_agent"
         agent_label = "Notify Agent"
+    elif any(k in msg_lower for k in health_keywords):
+        runner = health_runner
+        agent_key = "health_agent"
+        agent_label = "Health Agent"
+    elif any(k in msg_lower for k in finance_keywords):
+        runner = finance_runner
+        agent_key = "finance_agent"
+        agent_label = "Finance Agent"
     elif is_finance:
         runner = finance_runner
         agent_key = "finance_agent"
@@ -506,12 +514,25 @@ async def chat(request: ChatRequest):
             
             response_text = ""
             if updated_session and updated_session.events:
-                # Look backwards for the latest text response from the agent
+                # Look backwards for the latest text response from the agent (role='model')
                 for ev in reversed(updated_session.events):
-                    if ev.content and ev.content.parts:
+                    if ev.content and getattr(ev.content, "role", None) == "model" and ev.content.parts:
                         parts_txt = [p.text for p in ev.content.parts if p.text]
                         if parts_txt:
                             response_text = " ".join(parts_txt)
+                            break
+            
+            # If no agent text response, look for the last tool execution result
+            if not response_text and updated_session and updated_session.events:
+                for ev in reversed(updated_session.events):
+                    if ev.content and ev.content.parts:
+                        for part in ev.content.parts:
+                            if hasattr(part, "function_response") and part.function_response:
+                                resp_dict = getattr(part.function_response, "response", {})
+                                if isinstance(resp_dict, dict) and "result" in resp_dict:
+                                    response_text = str(resp_dict["result"])
+                                    break
+                        if response_text:
                             break
             
             # Fallback if no text event parts were found

@@ -93,6 +93,16 @@ def log_meal(name: str, calories: int) -> str:
     today_str = date.today().strftime("%Y-%m-%d")
     
     records = _read_health()
+    
+    # Check for duplicate
+    for r in records:
+        if (r.get("type") == "meal" and 
+            r.get("name", "").strip().lower() == name.lower() and 
+            r.get("date") == today_str):
+            res = f"Already logged {name} today!"
+            log_agent_call("health_agent", f"log_meal(name={name}, calories={calories})", res)
+            return res
+            
     new_record = {
         "type": "meal",
         "name": name,
@@ -129,6 +139,16 @@ def log_workout(workout_type: str, duration: int) -> str:
     today_str = date.today().strftime("%Y-%m-%d")
     
     records = _read_health()
+    
+    # Check for duplicate
+    for r in records:
+        if (r.get("type") == "workout" and 
+            r.get("workout_type", "").strip().lower() == workout_type.lower() and 
+            r.get("date") == today_str):
+            res = f"Already logged {workout_type} today!"
+            log_agent_call("health_agent", f"log_workout(type={workout_type}, duration={duration_val})", res)
+            return res
+            
     new_record = {
         "type": "workout",
         "workout_type": workout_type,
@@ -284,17 +304,19 @@ health_agent = Agent(
     Do NOT write python code or perform direct file operations. All database operations must be done via your tools.
     
     Follow these rules:
-    1. Single-Message Workout Logging:
+    1. Single-Message Meal Logging:
+       - If the user provides a meal log request in a single message (e.g., "log meal chicken rice 600 calories", "chicken salad 400 calories", etc.), you MUST parse both the food/meal name (e.g., "chicken rice") and the calories (e.g., 600) from the message and call `log_meal` immediately in a single turn without asking any follow-up questions.
+       - Pattern: "log meal [food name] [number] calories" → call `log_meal(name="[food name]", calories=[number])`.
+    2. Single-Message Workout Logging:
        - If the user provides a workout log request in a single message (e.g., "log 30 min jogging", "jogging for 30 minutes", etc.), you MUST parse both the workout type (e.g., "jogging") and the duration (e.g., 30) from the message and call `log_workout` immediately in a single turn without asking any follow-up questions.
-    2. Incomplete Logs:
+    3. Incomplete Logs:
        - If the user specifies a duration but no workout type (e.g. "log 30 min"), ask them for the workout type.
        - Once they reply with the workout type, immediately call `log_workout` using the previously provided duration and the new workout type.
        - Similarly, if they specify the workout type but no duration, ask for the duration and immediately call `log_workout` once provided.
-    3. Save all health data to health.json immediately.
-    4. Pass Tool Responses Verbatim:
-       - After calling show_health_summary tool, always return the EXACT text returned by the tool to the user. Do not summarize or modify it. Return it word for word.
-       - Pass any tool confirmation messages (like from log_workout or log_meal) back to the user verbatim.
-    5. Be polite, clear, and structured in your responses.
+    4. Save all health data to health.json immediately.
+    5. Pass Tool Responses Verbatim:
+       - After calling any tool (such as log_meal, log_workout, show_health_summary), you MUST output the exact confirmation or output string returned by that tool back to the user as your final text response. You MUST NOT return an empty message, do not summarize, and do not modify the tool output in any way. Return it word for word.
+    6. Be polite, clear, and structured in your responses.
     """,
     tools=[log_meal, log_workout, show_health_summary, get_health_data],
     before_agent_callback=make_before_callback("health_agent"),
