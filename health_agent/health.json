@@ -47,6 +47,18 @@
       "workout_type": "jogging",
       "duration": 30,
       "date": "2026-06-25"
+    },
+    {
+      "type": "meal",
+      "name": "lunch",
+      "calories": 500,
+      "date": "2026-06-28"
+    },
+    {
+      "type": "meal",
+      "name": "lunch",
+      "calories": 500,
+      "date": "2026-06-28"
     }
   ]
 }

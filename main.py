@@ -384,6 +384,21 @@ async def chat(request: ChatRequest):
     is_finance = any(w in msg_lower for w in ['expense', 'budget', 'money', 'finance', 'spent', 'spend', 'cost', 'price', '$'])
     is_task = any(w in msg_lower for w in ['task', 'tasks', 'todo', 'todos']) or any(w in msg_lower for w in ['complete', 'completed', 'mark done', 'finish', 'finished', 'done']) or any(w in msg_lower for w in ['delete', 'remove', 'priority', 'prioritize']) or ("add" in msg_lower and ("task" in msg_lower or "tasks" in msg_lower)) or any(w in msg_lower for w in ['to my tasks', 'my tasks', 'to tasks'])
 
+    # Overrides for log routing:
+    contains_log = bool(re.search(r'\blog\b', msg_lower))
+    if contains_log:
+        time_unit_pattern = r'\b\d+(?:\.\d+)?\s*(?:mins?|minutes?|hours?|hrs?|secs?|seconds?|h|m)\b'
+        log_idx = msg_lower.find("log")
+        sub_msg = msg_lower[log_idx:]
+        if re.search(time_unit_pattern, sub_msg):
+            is_health = True
+            is_finance = False
+        else:
+            number_pattern = r'\b\d+(?:\.\d+)?\b'
+            if re.search(number_pattern, sub_msg):
+                is_finance = True
+                is_health = False
+
     if pending_agent == "task_agent":
         runner = task_runner
         agent_key = "task_agent"
